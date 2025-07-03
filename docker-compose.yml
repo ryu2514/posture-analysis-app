@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONPATH=/app
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/reports:/app/reports
+    networks:
+      - posture-network
+    restart: unless-stopped
+
+  # Add frontend build service (optional for development)
+  frontend-build:
+    image: flutter:latest
+    working_dir: /app
+    volumes:
+      - ./frontend:/app
+    command: flutter build web
+    profiles:
+      - build
+
+networks:
+  posture-network:
+    driver: bridge
+
+volumes:
+  uploads:
+  reports:
