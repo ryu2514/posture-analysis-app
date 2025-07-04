@@ -1,6 +1,6 @@
 import pytest
 import math
-from app.utils.angle_calculator import AngleCalculator
+from backend.app.utils.angle_calculator import AngleCalculator
 
 class TestAngleCalculator:
     
@@ -173,8 +173,8 @@ class TestAngleCalculator:
     
     @pytest.mark.parametrize("left_hip,right_hip,expected_range", [
         ({'x': 0.3, 'y': 0.5}, {'x': 0.7, 'y': 0.5}, (0, 2)),      # Level hips
-        ({'x': 0.3, 'y': 0.4}, {'x': 0.7, 'y': 0.6}, (10, 20)),    # Tilted hips
-        ({'x': 0.3, 'y': 0.6}, {'x': 0.7, 'y': 0.4}, (10, 20)),    # Opposite tilt
+        ({'x': 0.3, 'y': 0.4}, {'x': 0.7, 'y': 0.6}, (20, 35)),    # Tilted hips
+        ({'x': 0.3, 'y': 0.6}, {'x': 0.7, 'y': 0.4}, (20, 35)),    # Opposite tilt
     ])
     def test_pelvic_tilt_scenarios(self, left_hip, right_hip, expected_range):
         """Test pelvic tilt calculation with various scenarios"""

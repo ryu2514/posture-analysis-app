@@ -14,8 +14,8 @@ from datetime import datetime
 from typing import Dict, List, Any
 import numpy as np
 
-from app.models.posture_result import PostureAnalysisResult, PostureReport, PostureRecommendation
-from app.core.config import settings
+from backend.app.models.posture_result import PostureAnalysisResult, PostureReport, PostureRecommendation
+from backend.app.core.config import settings
 
 class ReportGenerator:
     """Generate PDF and visual reports for posture analysis"""

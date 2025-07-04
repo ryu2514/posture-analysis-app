@@ -5,9 +5,9 @@ import os
 import logging
 from pathlib import Path
 
-from app.services.report_generator import ReportGenerator
-from app.models.posture_result import PostureAnalysisResult
-from app.core.config import settings
+from backend.app.services.report_generator import ReportGenerator
+from backend.app.models.posture_result import PostureAnalysisResult
+from backend.app.core.config import settings
 
 logger = logging.getLogger(__name__)
 router = APIRouter()

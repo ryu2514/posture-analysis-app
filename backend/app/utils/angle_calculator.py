@@ -16,8 +16,15 @@ class AngleCalculator:
         v1 = p1 - p2
         v2 = p3 - p2
         
+        # Handle edge case where vectors are zero
+        norm_v1 = np.linalg.norm(v1)
+        norm_v2 = np.linalg.norm(v2)
+        
+        if norm_v1 == 0 or norm_v2 == 0:
+            return 0.0  # Return 0 for degenerate cases
+        
         # Calculate angle
-        cos_angle = np.dot(v1, v2) / (np.linalg.norm(v1) * np.linalg.norm(v2))
+        cos_angle = np.dot(v1, v2) / (norm_v1 * norm_v2)
         cos_angle = np.clip(cos_angle, -1.0, 1.0)  # Prevent numerical errors
         angle = np.arccos(cos_angle)
         
@@ -57,10 +64,13 @@ class AngleCalculator:
         dx = shoulder_mid['x'] - hip_mid['x']
         dy = shoulder_mid['y'] - hip_mid['y']
         
-        trunk_angle = math.degrees(math.atan2(abs(dx), dy))
+        if dy == 0:
+            return 0.0  # Avoid division by zero
         
-        # Thoracic kyphosis increases with forward lean
-        return max(0, trunk_angle)
+        trunk_angle = math.degrees(math.atan2(abs(dx), abs(dy)))
+        
+        # Thoracic kyphosis should be in reasonable range (0-60 degrees)
+        return min(60, max(0, trunk_angle))
     
     def calculate_cervical_lordosis(self, nose: Dict, left_ear: Dict, right_ear: Dict,
                                   left_shoulder: Dict, right_shoulder: Dict) -> float:
@@ -94,11 +104,12 @@ class AngleCalculator:
     def calculate_shoulder_height_difference(self, left_shoulder: Dict, right_shoulder: Dict,
                                            image_size: Tuple[int, int]) -> float:
         """Calculate shoulder height difference in cm (estimated)"""
-        # Calculate vertical difference
-        height_diff_pixels = abs(left_shoulder['y'] - right_shoulder['y'])
+        # Calculate vertical difference (normalized coordinates are 0-1)
+        height_diff_normalized = abs(left_shoulder['y'] - right_shoulder['y'])
         
         # Convert to approximate cm (assuming average person height ~170cm)
-        # This is a rough estimation based on image proportions
+        # Since coordinates are normalized, multiply by image height first
+        height_diff_pixels = height_diff_normalized * image_size[1]
         pixels_per_cm = image_size[1] / 170  # Approximate conversion
         height_diff_cm = height_diff_pixels / pixels_per_cm
         

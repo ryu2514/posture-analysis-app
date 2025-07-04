@@ -6,9 +6,9 @@ import logging
 from io import BytesIO
 from PIL import Image
 
-from app.models.posture_result import PostureAnalysisResult, PostureMetrics
-from app.core.config import settings
-from app.utils.angle_calculator import AngleCalculator
+from backend.app.models.posture_result import PostureAnalysisResult, PostureMetrics
+from backend.app.core.config import settings
+from backend.app.utils.angle_calculator import AngleCalculator
 
 logger = logging.getLogger(__name__)
 

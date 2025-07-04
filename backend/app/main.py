@@ -5,11 +5,11 @@ import asyncio
 import logging
 from typing import Dict, Any
 
-from app.services.pose_analyzer import PoseAnalyzer
-from app.services.report_generator import ReportGenerator
-from app.models.posture_result import PostureAnalysisResult
-from app.core.config import settings
-from app.api import reports
+from backend.app.services.pose_analyzer import PoseAnalyzer
+from backend.app.services.report_generator import ReportGenerator
+from backend.app.models.posture_result import PostureAnalysisResult
+from backend.app.core.config import settings
+from backend.app.api import reports
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -53,11 +53,13 @@ async def analyze_posture(file: UploadFile = File(...)) -> Dict[str, Any]:
         
         result = await pose_analyzer.analyze_image(image_data)
         
-        if not result:
-            raise HTTPException(status_code=422, detail="Could not detect pose landmarks")
+        if result is None:
+            raise HTTPException(status_code=422, detail="Could not detect pose landmarks in the image")
         
         return result.dict()
         
+    except HTTPException:
+        raise  # Re-raise HTTPExceptions as-is
     except Exception as e:
         logger.error(f"Error analyzing posture: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")

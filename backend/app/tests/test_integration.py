@@ -6,9 +6,9 @@ import io
 from PIL import Image
 import json
 
-from app.main import app
-from app.services.pose_analyzer import PoseAnalyzer
-from app.models.posture_result import PostureAnalysisResult, PostureMetrics
+from backend.app.main import app
+from backend.app.services.pose_analyzer import PoseAnalyzer
+from backend.app.models.posture_result import PostureAnalysisResult, PostureMetrics
 
 class TestIntegration:
     
@@ -91,7 +91,7 @@ class TestIntegration:
         assert "unit" in pelvic_data
         assert len(pelvic_data["normal_range"]) == 2
     
-    @patch('app.services.pose_analyzer.PoseAnalyzer.analyze_image')
+    @patch('backend.app.services.pose_analyzer.PoseAnalyzer.analyze_image')
     def test_analyze_posture_success(self, mock_analyze):
         """Test successful posture analysis via API"""
         # Setup mock
@@ -137,7 +137,7 @@ class TestIntegration:
         assert "detail" in data
         assert "image" in data["detail"].lower()
     
-    @patch('app.services.pose_analyzer.PoseAnalyzer.analyze_image')
+    @patch('backend.app.services.pose_analyzer.PoseAnalyzer.analyze_image')
     def test_analyze_posture_no_landmarks(self, mock_analyze):
         """Test posture analysis when no landmarks are detected"""
         # Setup mock to return None (no landmarks detected)
@@ -155,7 +155,7 @@ class TestIntegration:
         assert "detail" in data
         assert "pose landmarks" in data["detail"].lower()
     
-    @patch('app.services.report_generator.ReportGenerator.generate_pdf_report')
+    @patch('backend.app.services.report_generator.ReportGenerator.generate_pdf_report')
     def test_generate_report_success(self, mock_generate):
         """Test successful report generation"""
         # Setup mock
@@ -189,7 +189,7 @@ class TestIntegration:
     @pytest.mark.parametrize("image_format", ["JPEG", "PNG"])
     def test_analyze_posture_different_formats(self, image_format):
         """Test posture analysis with different image formats"""
-        with patch('app.services.pose_analyzer.PoseAnalyzer.analyze_image') as mock_analyze:
+        with patch('backend.app.services.pose_analyzer.PoseAnalyzer.analyze_image') as mock_analyze:
             mock_analyze.return_value = self.create_mock_analysis_result()
             
             test_image = self.create_test_image(format=image_format)
@@ -202,7 +202,7 @@ class TestIntegration:
             
             assert response.status_code == 200
     
-    @patch('app.services.pose_analyzer.PoseAnalyzer.analyze_image')
+    @patch('backend.app.services.pose_analyzer.PoseAnalyzer.analyze_image')
     def test_analyze_posture_large_image(self, mock_analyze):
         """Test posture analysis with large image"""
         mock_analyze.return_value = self.create_mock_analysis_result()
@@ -225,7 +225,7 @@ class TestIntegration:
         assert "access-control-allow-origin" in response.headers
         assert "access-control-allow-methods" in response.headers
     
-    @patch('app.services.pose_analyzer.PoseAnalyzer.analyze_image')
+    @patch('backend.app.services.pose_analyzer.PoseAnalyzer.analyze_image')
     def test_concurrent_analysis_requests(self, mock_analyze):
         """Test handling multiple concurrent analysis requests"""
         mock_analyze.return_value = self.create_mock_analysis_result()
@@ -258,7 +258,7 @@ class TestIntegration:
         # Should return validation error
         assert response.status_code == 422
     
-    @patch('app.services.pose_analyzer.PoseAnalyzer.analyze_image')
+    @patch('backend.app.services.pose_analyzer.PoseAnalyzer.analyze_image')
     def test_analysis_result_structure(self, mock_analyze):
         """Test that analysis result has correct structure"""
         mock_analyze.return_value = self.create_mock_analysis_result()
@@ -307,7 +307,7 @@ class TestIntegration:
         assert "version" in data
         assert data["version"] == "1.0.0"
     
-    @patch('app.services.pose_analyzer.PoseAnalyzer.analyze_image')
+    @patch('backend.app.services.pose_analyzer.PoseAnalyzer.analyze_image')
     def test_response_time_performance(self, mock_analyze):
         """Test that API responds within reasonable time"""
         import time

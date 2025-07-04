@@ -23,8 +23,8 @@ class PoseValidation:
                 return False
             
             landmark = landmarks[landmark_name]
-            if 'visibility' not in landmark or landmark['visibility'] < 0.5:
-                logger.warning(f"Low visibility for landmark: {landmark_name}")
+            if landmark is None or 'visibility' not in landmark or landmark['visibility'] < 0.5:
+                logger.warning(f"Invalid or low visibility for landmark: {landmark_name}")
                 return False
         
         return True
