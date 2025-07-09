@@ -1,8 +1,8 @@
-from fastapi import FastAPI, File, UploadFile, HTTPException, Depends
+from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
 import asyncio
-import logging
+import time
 from typing import Dict, Any
 
 from backend.app.services.pose_analyzer import PoseAnalyzer
@@ -10,9 +10,10 @@ from backend.app.services.report_generator import ReportGenerator
 from backend.app.models.posture_result import PostureAnalysisResult
 from backend.app.core.config import settings
 from backend.app.api import reports
+from backend.app.utils.logger import get_logger
+from backend.app.utils.performance_monitor import get_performance_monitor
 
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+logger = get_logger("main_api")
 
 app = FastAPI(
     title="Posture Analysis API",
@@ -33,35 +34,88 @@ app.include_router(reports.router, prefix="/api/reports", tags=["reports"])
 
 pose_analyzer = PoseAnalyzer()
 report_generator = ReportGenerator()
+performance_monitor = get_performance_monitor()
+
+@app.on_event("startup")
+async def startup_event():
+    """アプリケーション起動時の処理"""
+    logger.info("🚀 姿勢分析APIサーバー起動中...")
+    logger.log_system_info()
+    logger.info("✅ 起動完了", 
+               app_name="Posture Analysis API",
+               version="1.0.0",
+               allowed_origins=settings.ALLOWED_ORIGINS)
 
 @app.get("/")
-async def root():
-    return {"message": "Posture Analysis API", "version": "1.0.0"}
+async def root(request: Request):
+    client_ip = request.client.host
+    logger.log_api_request("/", "GET", client_ip)
+    
+    response = {"message": "Posture Analysis API", "version": "1.0.0"}
+    logger.log_api_response("/", 200, 0.001)
+    return response
 
 @app.get("/health")
-async def health_check():
-    return {"status": "healthy", "mediapipe": "ready"}
+async def health_check(request: Request):
+    client_ip = request.client.host
+    logger.log_api_request("/health", "GET", client_ip)
+    
+    response = {"status": "healthy", "mediapipe": "ready"}
+    logger.log_api_response("/health", 200, 0.001)
+    return response
 
 @app.post("/analyze-posture")
-async def analyze_posture(file: UploadFile = File(...)) -> Dict[str, Any]:
+async def analyze_posture(file: UploadFile = File(...), request: Request) -> Dict[str, Any]:
+    start_time = time.time()
+    client_ip = request.client.host
+    
+    # 基本バリデーション
     if not file.content_type.startswith("image/"):
+        logger.warning("無効なファイル形式", 
+                      filename=file.filename,
+                      content_type=file.content_type,
+                      client_ip=client_ip)
         raise HTTPException(status_code=400, detail="File must be an image")
     
     try:
         image_data = await file.read()
-        logger.info(f"Processing image: {file.filename}, size: {len(image_data)} bytes")
+        file_size = len(image_data)
         
+        # APIリクエストログ
+        logger.log_api_request("/analyze-posture", "POST", client_ip, file_size)
+        
+        # 姿勢分析実行
+        analysis_timer = logger.start_timer("api_analysis")
         result = await pose_analyzer.analyze_image(image_data)
+        analysis_duration = logger.end_timer(analysis_timer)
         
         if result is None:
+            # 検出失敗
+            response_time = time.time() - start_time
+            logger.log_api_response("/analyze-posture", 422, response_time, 
+                                  "Could not detect pose landmarks in the image")
             raise HTTPException(status_code=422, detail="Could not detect pose landmarks in the image")
+        
+        # 成功レスポンス
+        response_time = time.time() - start_time
+        logger.log_api_response("/analyze-posture", 200, response_time)
+        logger.info("姿勢分析API成功", 
+                   filename=file.filename,
+                   file_size=file_size,
+                   analysis_duration=analysis_duration,
+                   overall_score=result.overall_score,
+                   client_ip=client_ip)
         
         return result.dict()
         
     except HTTPException:
         raise  # Re-raise HTTPExceptions as-is
     except Exception as e:
-        logger.error(f"Error analyzing posture: {str(e)}")
+        response_time = time.time() - start_time
+        logger.error("姿勢分析API内部エラー", error=e, 
+                    filename=file.filename,
+                    client_ip=client_ip)
+        logger.log_api_response("/analyze-posture", 500, response_time, str(e))
         raise HTTPException(status_code=500, detail=f"Analysis failed: {str(e)}")
 
 @app.post("/generate-report")
@@ -76,13 +130,139 @@ async def generate_report(analysis_result: PostureAnalysisResult):
 @app.get("/metrics/reference")
 async def get_reference_values():
     return {
-        "pelvic_tilt": {"normal_range": [-5, 15], "unit": "degrees"},
+        "pelvic_tilt": {"normal_range": [5, 15], "unit": "degrees"},
         "thoracic_kyphosis": {"normal_range": [25, 45], "unit": "degrees"},
         "cervical_lordosis": {"normal_range": [15, 35], "unit": "degrees"},
-        "shoulder_elevation": {"normal_range": [-2, 2], "unit": "cm"},
-        "head_forward": {"normal_range": [0, 5], "unit": "cm"},
-        "overall_score": {"excellent": [90, 100], "good": [70, 89], "fair": [50, 69], "poor": [0, 49]}
+        "shoulder_elevation": {"normal_range": [0, 1.5], "unit": "cm"},
+        "head_forward": {"normal_range": [0, 2.5], "unit": "cm"},
+        "lumbar_lordosis": {"normal_range": [30, 50], "unit": "degrees"},
+        "knee_valgus_varus": {"normal_range": [0, 10], "unit": "degrees"},
+        "heel_inclination": {"normal_range": [0, 5], "unit": "degrees"},
+        "seated_metrics": {
+            "seated_pelvic_tilt": {"normal_range": [0, 15], "unit": "degrees"},
+            "head_neck_position": {"normal_range": [0, 5], "unit": "cm"},
+            "trunk_forward_lean": {"normal_range": [0, 20], "unit": "degrees"},
+            "lateral_lean": {"normal_range": [0, 10], "unit": "degrees"}
+        },
+        "overall_score": {"excellent": [90, 100], "good": [70, 89], "fair": [50, 69], "poor": [0, 49]},
+        "color_codes": {
+            "excellent": "#22c55e",
+            "good": "#84cc16", 
+            "fair": "#eab308",
+            "poor": "#f97316",
+            "critical": "#ef4444"
+        }
     }
+
+@app.get("/demo", response_class=HTMLResponse)
+async def demo_page():
+    """HTML demo page for posture analysis"""
+    import os
+    # プロジェクトルートのdemo.htmlを参照
+    demo_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "demo.html")
+    try:
+        with open(demo_path, "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        return "<h1>Demo page not found</h1><p>Please run: python3 create_demo_page.py</p>"
+
+@app.get("/debug", response_class=HTMLResponse)
+async def debug_page():
+    """Debug page for troubleshooting"""
+    import os
+    debug_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "debug_demo.html")
+    try:
+        with open(debug_path, "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        return "<h1>Debug page not found</h1><p>File: debug_demo.html not found</p>"
+
+@app.get("/fixed", response_class=HTMLResponse)
+async def fixed_demo_page():
+    """Fixed demo page with improved progress tracking and error handling"""
+    import os
+    fixed_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "fixed_demo.html")
+    try:
+        with open(fixed_path, "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        return "<h1>Fixed demo page not found</h1><p>File: fixed_demo.html not found</p>"
+
+@app.get("/test", response_class=HTMLResponse)
+async def user_test_page():
+    """User acceptance testing page"""
+    import os
+    test_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "test-demo.html")
+    try:
+        with open(test_path, "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        return "<h1>Test page not found</h1><p>File: test-demo.html not found</p>"
+
+@app.get("/enhanced", response_class=HTMLResponse)
+async def enhanced_demo_page():
+    """Enhanced demo page with performance monitoring and improved UX"""
+    import os
+    # コンテナ内のパスを直接指定
+    enhanced_path = "/app/enhanced_demo_v2.html"
+    try:
+        with open(enhanced_path, "r", encoding="utf-8") as f:
+            return f.read()
+    except FileNotFoundError:
+        # フォールバック: 元のファイルを試行
+        fallback_path = "/app/enhanced_demo.html"
+        try:
+            with open(fallback_path, "r", encoding="utf-8") as f:
+                return f.read()
+        except FileNotFoundError:
+            return "<h1>Enhanced demo page not found</h1><p>File: enhanced_demo_v2.html not found</p>"
+
+@app.get("/api/performance/summary")
+async def get_performance_summary():
+    """パフォーマンスサマリー取得"""
+    try:
+        summary = performance_monitor.get_performance_summary()
+        return summary
+    except Exception as e:
+        logger.error("パフォーマンスサマリー取得エラー", error=e)
+        raise HTTPException(status_code=500, detail=f"Performance summary failed: {str(e)}")
+
+@app.get("/api/performance/recommendations")
+async def get_performance_recommendations():
+    """パフォーマンス最適化推奨事項取得"""
+    try:
+        recommendations = performance_monitor.get_optimization_recommendations()
+        return {"recommendations": recommendations}
+    except Exception as e:
+        logger.error("パフォーマンス推奨事項取得エラー", error=e)
+        raise HTTPException(status_code=500, detail=f"Performance recommendations failed: {str(e)}")
+
+@app.post("/api/performance/export")
+async def export_performance_data():
+    """パフォーマンスデータエクスポート"""
+    try:
+        import os
+        export_path = "/Users/kobayashiryuju/posture-analysis-app/performance_export.json"
+        performance_monitor.export_performance_data(export_path)
+        
+        # ファイルが存在するかチェック
+        if os.path.exists(export_path):
+            return {"status": "success", "export_path": export_path, "message": "Performance data exported"}
+        else:
+            raise HTTPException(status_code=500, detail="Export file was not created")
+    except Exception as e:
+        logger.error("パフォーマンスデータエクスポートエラー", error=e)
+        raise HTTPException(status_code=500, detail=f"Performance export failed: {str(e)}")
+
+@app.delete("/api/performance/clear")
+async def clear_performance_history():
+    """パフォーマンス履歴クリア"""
+    try:
+        performance_monitor.clear_history()
+        return {"status": "success", "message": "Performance history cleared"}
+    except Exception as e:
+        logger.error("パフォーマンス履歴クリアエラー", error=e)
+        raise HTTPException(status_code=500, detail=f"Performance clear failed: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

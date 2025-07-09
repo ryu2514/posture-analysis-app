@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>姿勢分析アプリ - 高機能版 v2.0</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .content {
+            padding: 2rem;
+        }
+        
+        .upload-section {
+            background: #f8f9fa;
+            border: 2px dashed #dee2e6;
+            border-radius: 15px;
+            padding: 3rem;
+            text-align: center;
+            margin-bottom: 2rem;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-section:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        
+        .upload-section.dragover {
+            border-color: #667eea;
+            background: #e3f2fd;
+        }
+        
+        .upload-icon {
+            font-size: 4rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+        
+        .upload-text {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 1rem;
+        }
+        
+        .file-input {
+            display: none;
+        }
+        
+        .upload-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .upload-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+        
+        .progress-section {
+            display: none;
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .progress-bar-container {
+            background: #e9ecef;
+            border-radius: 50px;
+            height: 20px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+        
+        .progress-bar {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+        
+        .progress-text {
+            text-align: center;
+            color: #666;
+            font-size: 1.1rem;
+        }
+        
+        .results-section {
+            display: none;
+            margin-top: 2rem;
+        }
+        
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .image-container {
+            text-align: center;
+        }
+        
+        .analyzed-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        
+        .metrics-container {
+            background: #f8f9fa;
+            border-radius: 15px;
+            padding: 2rem;
+        }
+        
+        .metrics-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .overall-score {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+        
+        .score-label {
+            font-size: 1rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+        
+        .metric-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            background: white;
+            border-radius: 10px;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .metric-name {
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .metric-value {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .metric-number {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        
+        .metric-unit {
+            color: #666;
+            font-size: 0.9rem;
+        }
+        
+        .color-indicator {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-left: 0.5rem;
+        }
+        
+        .posture-type-section {
+            background: #e3f2fd;
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .posture-type-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1976d2;
+            margin-bottom: 1rem;
+        }
+        
+        .posture-description {
+            font-size: 1.1rem;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .improvements-section {
+            background: #f3e5f5;
+            border-radius: 15px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+        }
+        
+        .improvements-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #7b1fa2;
+            margin-bottom: 1rem;
+        }
+        
+        .improvement-item {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .improvement-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+        
+        .improvement-description {
+            color: #666;
+            margin-bottom: 1rem;
+        }
+        
+        .exercises-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .exercise-tag {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+        }
+        
+        .additional-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+        
+        .metric-card {
+            background: white;
+            border-radius: 10px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+        
+        .metric-card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 1rem;
+        }
+        
+        .metric-detail {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 0.5rem;
+        }
+        
+        .seated-indicator {
+            background: #4caf50;
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            margin-left: 1rem;
+        }
+        
+        .error-message {
+            color: #dc3545;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+        
+        .loading-spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        @media (max-width: 768px) {
+            .results-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .content {
+                padding: 1rem;
+            }
+            
+            .upload-section {
+                padding: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 姿勢分析アプリ v2.0</h1>
+            <p>高精度姿勢分析・カラー判定・姿勢タイプ分類対応</p>
+        </div>
+        
+        <div class="content">
+            <div class="upload-section" id="uploadSection">
+                <div class="upload-icon">📸</div>
+                <div class="upload-text">
+                    画像をドラッグ&ドロップするか、クリックしてアップロード
+                </div>
+                <input type="file" class="file-input" id="fileInput" accept="image/*">
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    画像を選択
+                </button>
+            </div>
+            
+            <div class="progress-section" id="progressSection">
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                <div class="progress-text" id="progressText">分析中...</div>
+            </div>
+            
+            <div class="results-section" id="resultsSection">
+                <div class="results-grid">
+                    <div class="image-container">
+                        <h3>分析結果</h3>
+                        <canvas id="resultCanvas" class="analyzed-image"></canvas>
+                    </div>
+                    
+                    <div class="metrics-container">
+                        <div class="metrics-header">
+                            <div>
+                                <div class="overall-score" id="overallScore">--</div>
+                                <div class="score-label">総合スコア</div>
+                            </div>
+                            <div id="overallColorIndicator" class="color-indicator"></div>
+                        </div>
+                        
+                        <div id="metricsContainer">
+                            <!-- メトリクス項目がここに動的に追加されます -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="posture-type-section" id="postureTypeSection">
+                    <div class="posture-type-title" id="postureTypeTitle">
+                        姿勢タイプ: <span id="postureTypeName">--</span>
+                        <span id="seatedIndicator" class="seated-indicator" style="display: none;">座位姿勢</span>
+                    </div>
+                    <div class="posture-description" id="postureDescription">
+                        分析結果を待機中...
+                    </div>
+                </div>
+                
+                <div class="improvements-section" id="improvementsSection">
+                    <div class="improvements-title">改善提案</div>
+                    <div id="improvementsContainer">
+                        <!-- 改善提案がここに動的に追加されます -->
+                    </div>
+                </div>
+                
+                <div class="additional-metrics" id="additionalMetrics">
+                    <!-- 追加メトリクス（膝・踵・座位）がここに表示されます -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let currentImageData = null;
+        let analysisResult = null;
+        
+        // DOM要素の取得
+        const uploadSection = document.getElementById('uploadSection');
+        const fileInput = document.getElementById('fileInput');
+        const progressSection = document.getElementById('progressSection');
+        const progressBar = document.getElementById('progressBar');
+        const progressText = document.getElementById('progressText');
+        const resultsSection = document.getElementById('resultsSection');
+        const resultCanvas = document.getElementById('resultCanvas');
+        const overallScore = document.getElementById('overallScore');
+        const overallColorIndicator = document.getElementById('overallColorIndicator');
+        const metricsContainer = document.getElementById('metricsContainer');
+        const postureTypeName = document.getElementById('postureTypeName');
+        const postureDescription = document.getElementById('postureDescription');
+        const seatedIndicator = document.getElementById('seatedIndicator');
+        const improvementsContainer = document.getElementById('improvementsContainer');
+        const additionalMetrics = document.getElementById('additionalMetrics');
+        
+        // ドラッグ&ドロップ機能
+        uploadSection.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadSection.classList.add('dragover');
+        });
+        
+        uploadSection.addEventListener('dragleave', () => {
+            uploadSection.classList.remove('dragover');
+        });
+        
+        uploadSection.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadSection.classList.remove('dragover');
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                handleFile(files[0]);
+            }
+        });
+        
+        fileInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                handleFile(e.target.files[0]);
+            }
+        });
+        
+        function handleFile(file) {
+            if (!file.type.startsWith('image/')) {
+                alert('画像ファイルを選択してください。');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                currentImageData = e.target.result;
+                analyzeImage(file);
+            };
+            reader.readAsDataURL(file);
+        }
+        
+        async function analyzeImage(file) {
+            try {
+                // プログレス表示
+                uploadSection.style.display = 'none';
+                progressSection.style.display = 'block';
+                resultsSection.style.display = 'none';
+                
+                updateProgress(0, '画像をアップロード中...');
+                
+                // FormData作成
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                updateProgress(30, '姿勢分析を実行中...');
+                
+                // API呼び出し
+                const response = await fetch('/analyze-posture', {\n                    method: 'POST',\n                    body: formData\n                });\n                \n                updateProgress(80, '結果を処理中...');\n                \n                if (!response.ok) {\n                    throw new Error(`分析エラー: ${response.status}`);\n                }\n                \n                const result = await response.json();\n                analysisResult = result;\n                \n                updateProgress(100, '完了');\n                \n                // 結果表示\n                setTimeout(() => {\n                    displayResults(result);\n                }, 500);\n                \n            } catch (error) {\n                console.error('分析エラー:', error);\n                showError(error.message);\n            }\n        }\n        \n        function updateProgress(percent, text) {\n            progressBar.style.width = percent + '%';\n            progressText.textContent = text;\n        }\n        \n        function displayResults(result) {\n            progressSection.style.display = 'none';\n            resultsSection.style.display = 'block';\n            \n            // 総合スコア表示\n            overallScore.textContent = Math.round(result.overall_score);\n            \n            // 全体的なカラー判定\n            if (result.overall_color_judgment) {\n                overallColorIndicator.style.backgroundColor = result.overall_color_judgment.color_code;\n                overallColorIndicator.title = result.overall_color_judgment.message;\n            }\n            \n            // 基本メトリクス表示\n            displayBasicMetrics(result.metrics, result.color_judgments);\n            \n            // 姿勢タイプ表示\n            displayPostureType(result.posture_type, result.is_seated_posture);\n            \n            // 改善提案表示\n            displayImprovements(result.improvement_suggestions);\n            \n            // 追加メトリクス表示\n            displayAdditionalMetrics(result.metrics);\n            \n            // 画像に骨格線を描画\n            drawPoseOnCanvas(result);\n        }\n        \n        function displayBasicMetrics(metrics, colorJudgments) {\n            const metricLabels = {\n                'pelvic_tilt': '骨盤傾斜角',\n                'thoracic_kyphosis': '胸椎後弯角',\n                'cervical_lordosis': '頸椎前弯角',\n                'shoulder_height_difference': '肩の高さ差',\n                'head_forward_posture': '頭部前方偏位',\n                'lumbar_lordosis': '腰椎前弯角',\n                'scapular_protraction': '肩甲骨前方突出',\n                'trunk_lateral_deviation': '体幹側方偏位'\n            };\n            \n            const metricUnits = {\n                'pelvic_tilt': '°',\n                'thoracic_kyphosis': '°',\n                'cervical_lordosis': '°',\n                'shoulder_height_difference': 'cm',\n                'head_forward_posture': 'cm',\n                'lumbar_lordosis': '°',\n                'scapular_protraction': 'cm',\n                'trunk_lateral_deviation': 'cm'\n            };\n            \n            metricsContainer.innerHTML = '';\n            \n            for (const [key, label] of Object.entries(metricLabels)) {\n                if (metrics[key] !== undefined) {\n                    const metricDiv = document.createElement('div');\n                    metricDiv.className = 'metric-item';\n                    \n                    const colorJudgment = colorJudgments?.[key];\n                    const colorCode = colorJudgment?.color_code || '#6c757d';\n                    const message = colorJudgment?.message || '';\n                    \n                    metricDiv.innerHTML = `\n                        <div class=\"metric-name\">${label}</div>\n                        <div class=\"metric-value\">\n                            <span class=\"metric-number\">${metrics[key].toFixed(1)}</span>\n                            <span class=\"metric-unit\">${metricUnits[key]}</span>\n                            <div class=\"color-indicator\" style=\"background-color: ${colorCode}\" title=\"${message}\"></div>\n                        </div>\n                    `;\n                    \n                    metricsContainer.appendChild(metricDiv);\n                }\n            }\n        }\n        \n        function displayPostureType(postureType, isSeated) {\n            if (postureType) {\n                postureTypeName.textContent = postureType.primary_type || '--';\n                postureDescription.textContent = postureType.description || '分析結果を取得中...';\n                \n                if (isSeated) {\n                    seatedIndicator.style.display = 'inline-block';\n                } else {\n                    seatedIndicator.style.display = 'none';\n                }\n            }\n        }\n        \n        function displayImprovements(improvements) {\n            improvementsContainer.innerHTML = '';\n            \n            if (improvements && improvements.length > 0) {\n                improvements.forEach(improvement => {\n                    const improvementDiv = document.createElement('div');\n                    improvementDiv.className = 'improvement-item';\n                    \n                    const exercisesTags = improvement.exercises ? \n                        improvement.exercises.map(ex => `<span class=\"exercise-tag\">${ex}</span>`).join('') : '';\n                    \n                    improvementDiv.innerHTML = `\n                        <div class=\"improvement-title\">${improvement.title}</div>\n                        <div class=\"improvement-description\">${improvement.description}</div>\n                        <div class=\"exercises-list\">${exercisesTags}</div>\n                    `;\n                    \n                    improvementsContainer.appendChild(improvementDiv);\n                });\n            } else {\n                improvementsContainer.innerHTML = '<div class=\"improvement-item\">現在の姿勢は良好です。この状態を維持してください。</div>';\n            }\n        }\n        \n        function displayAdditionalMetrics(metrics) {\n            additionalMetrics.innerHTML = '';\n            \n            // 膝外反/内反\n            if (metrics.knee_valgus_varus) {\n                const kneeCard = createMetricCard('膝外反/内反', {\n                    '左膝偏差': `${metrics.knee_valgus_varus.left_knee_deviation.toFixed(1)}° (${metrics.knee_valgus_varus.left_knee_type})`,\n                    '右膝偏差': `${metrics.knee_valgus_varus.right_knee_deviation.toFixed(1)}° (${metrics.knee_valgus_varus.right_knee_type})`,\n                    '平均偏差': `${metrics.knee_valgus_varus.average_deviation.toFixed(1)}°`\n                });\n                additionalMetrics.appendChild(kneeCard);\n            }\n            \n            // 踵骨傾斜\n            if (metrics.heel_inclination) {\n                const heelCard = createMetricCard('踵骨傾斜', {\n                    '左踵傾斜': `${metrics.heel_inclination.left_heel_inclination.toFixed(1)}°`,\n                    '右踵傾斜': `${metrics.heel_inclination.right_heel_inclination.toFixed(1)}°`,\n                    '平均傾斜': `${metrics.heel_inclination.average_inclination.toFixed(1)}°`\n                });\n                additionalMetrics.appendChild(heelCard);\n            }\n            \n            // 座位姿勢メトリクス\n            if (metrics.seated_metrics) {\n                const seatedCard = createMetricCard('座位姿勢', {\n                    '座位骨盤傾斜': `${metrics.seated_metrics.seated_pelvic_tilt.toFixed(1)}°`,\n                    '頭頸部位置': `${metrics.seated_metrics.head_neck_position.toFixed(1)}cm`,\n                    '前傾': `${metrics.seated_metrics.trunk_forward_lean.toFixed(1)}°`,\n                    '側方傾斜': `${metrics.seated_metrics.lateral_lean.toFixed(1)}°`\n                });\n                additionalMetrics.appendChild(seatedCard);\n            }\n        }\n        \n        function createMetricCard(title, details) {\n            const card = document.createElement('div');\n            card.className = 'metric-card';\n            \n            let detailsHtml = '';\n            for (const [key, value] of Object.entries(details)) {\n                detailsHtml += `\n                    <div class=\"metric-detail\">\n                        <span>${key}:</span>\n                        <span><strong>${value}</strong></span>\n                    </div>\n                `;\n            }\n            \n            card.innerHTML = `\n                <div class=\"metric-card-title\">${title}</div>\n                ${detailsHtml}\n            `;\n            \n            return card;\n        }\n        \n        function drawPoseOnCanvas(result) {\n            const canvas = resultCanvas;\n            const ctx = canvas.getContext('2d');\n            \n            // 画像を読み込み\n            const img = new Image();\n            img.onload = function() {\n                // キャンバスサイズを調整\n                canvas.width = img.width;\n                canvas.height = img.height;\n                \n                // 画像を描画\n                ctx.drawImage(img, 0, 0);\n                \n                // 骨格線を描画\n                drawPoseLandmarks(ctx, result.landmarks, img.width, img.height);\n            };\n            img.src = currentImageData;\n        }\n        \n        function drawPoseLandmarks(ctx, landmarks, width, height) {\n            // 関節点を描画\n            ctx.fillStyle = '#FF0000';\n            for (const [name, point] of Object.entries(landmarks)) {\n                const x = point.x * width;\n                const y = point.y * height;\n                ctx.beginPath();\n                ctx.arc(x, y, 3, 0, 2 * Math.PI);\n                ctx.fill();\n            }\n            \n            // 骨格線を描画\n            ctx.strokeStyle = '#00FF00';\n            ctx.lineWidth = 2;\n            \n            const connections = [\n                // 顔\n                ['left_ear', 'left_eye'], ['left_eye', 'nose'], ['nose', 'right_eye'], ['right_eye', 'right_ear'],\n                // 上半身\n                ['left_shoulder', 'right_shoulder'],\n                ['left_shoulder', 'left_elbow'], ['left_elbow', 'left_wrist'],\n                ['right_shoulder', 'right_elbow'], ['right_elbow', 'right_wrist'],\n                // 体幹\n                ['left_shoulder', 'left_hip'], ['right_shoulder', 'right_hip'],\n                ['left_hip', 'right_hip'],\n                // 下半身\n                ['left_hip', 'left_knee'], ['left_knee', 'left_ankle'],\n                ['right_hip', 'right_knee'], ['right_knee', 'right_ankle']\n            ];\n            \n            connections.forEach(([start, end]) => {\n                const startPoint = landmarks[start];\n                const endPoint = landmarks[end];\n                \n                if (startPoint && endPoint) {\n                    ctx.beginPath();\n                    ctx.moveTo(startPoint.x * width, startPoint.y * height);\n                    ctx.lineTo(endPoint.x * width, endPoint.y * height);\n                    ctx.stroke();\n                }\n            });\n        }\n        \n        function showError(message) {\n            progressSection.style.display = 'none';\n            uploadSection.style.display = 'block';\n            \n            const errorDiv = document.createElement('div');\n            errorDiv.className = 'error-message';\n            errorDiv.textContent = `エラー: ${message}`;\n            \n            uploadSection.insertBefore(errorDiv, uploadSection.firstChild);\n            \n            setTimeout(() => {\n                errorDiv.remove();\n            }, 5000);\n        }\n        \n        // リセット機能\n        function resetAnalysis() {\n            uploadSection.style.display = 'block';\n            progressSection.style.display = 'none';\n            resultsSection.style.display = 'none';\n            fileInput.value = '';\n            currentImageData = null;\n            analysisResult = null;\n        }\n        \n        // 初期化\n        document.addEventListener('DOMContentLoaded', () => {\n            console.log('姿勢分析アプリ v2.0 初期化完了');\n        });\n    </script>\n</body>\n</html>"

@@ -1,0 +1,655 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>姿勢分析システム - Enhanced版</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+            max-width: 1200px;
+            width: 100%;
+            min-height: 600px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 40px;
+            align-items: start;
+        }
+
+        .upload-section {
+            background: #f8f9ff;
+            padding: 30px;
+            border-radius: 15px;
+            border: 2px dashed #667eea;
+            text-align: center;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .upload-section:hover {
+            border-color: #764ba2;
+            background: #f0f2ff;
+        }
+
+        .upload-section.dragover {
+            border-color: #764ba2;
+            background: #e8ecff;
+            transform: scale(1.02);
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .upload-button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 30px;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 20px 0;
+        }
+
+        .upload-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .upload-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .progress-container {
+            margin: 20px 0;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            height: 8px;
+            display: none;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .status-message {
+            margin: 15px 0;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: 500;
+            display: none;
+        }
+
+        .status-info {
+            background: #e3f2fd;
+            color: #1976d2;
+            border-left: 4px solid #2196f3;
+        }
+
+        .status-success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border-left: 4px solid #4caf50;
+        }
+
+        .status-error {
+            background: #ffebee;
+            color: #c62828;
+            border-left: 4px solid #f44336;
+        }
+
+        .status-warning {
+            background: #fff3e0;
+            color: #ef6c00;
+            border-left: 4px solid #ff9800;
+        }
+
+        .results-section {
+            background: #f8f9ff;
+            padding: 30px;
+            border-radius: 15px;
+            min-height: 400px;
+        }
+
+        .results-title {
+            font-size: 1.5rem;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .pose-canvas {
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            max-width: 100%;
+            height: auto;
+            display: none;
+            margin-bottom: 20px;
+        }
+
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .metric-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .metric-card:hover {
+            transform: translateY(-2px);
+        }
+
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .metric-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .overall-score {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 15px;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .score-value {
+            font-size: 3rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .performance-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f0f2ff;
+            border-radius: 10px;
+        }
+
+        .performance-title {
+            font-size: 1.2rem;
+            color: #333;
+            margin-bottom: 15px;
+        }
+
+        .performance-metrics {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+        }
+
+        .performance-metric {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        .recommendations {
+            margin-top: 20px;
+            padding: 20px;
+            background: #fff3e0;
+            border-radius: 10px;
+            border-left: 4px solid #ff9800;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 768px) {
+            .content {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .metrics-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏃‍♂️ 姿勢分析システム Enhanced</h1>
+            <p>最新のMediaPipe技術による高精度姿勢分析 - ログ統合・パフォーマンス監視対応</p>
+        </div>
+
+        <div class="content">
+            <div class="upload-section" id="uploadSection">
+                <h3>📷 画像をアップロード</h3>
+                <p>JPEGまたはPNG形式の画像を選択してください</p>
+                
+                <input type="file" id="fileInput" class="file-input" accept="image/*">
+                <button onclick="document.getElementById('fileInput').click()" class="upload-button" id="uploadButton">
+                    📁 ファイルを選択
+                </button>
+                
+                <div class="progress-container" id="progressContainer">
+                    <div class="progress-bar" id="progressBar"></div>
+                </div>
+                
+                <div id="statusMessage" class="status-message"></div>
+                
+                <p style="margin-top: 20px; color: #666; font-size: 0.9rem;">
+                    または画像をここにドラッグ&ドロップ
+                </p>
+            </div>
+
+            <div class="results-section">
+                <h3 class="results-title">📊 分析結果</h3>
+                
+                <canvas id="poseCanvas" class="pose-canvas"></canvas>
+                
+                <div id="resultsContent">
+                    <p style="text-align: center; color: #999; padding: 60px 0;">
+                        画像をアップロードすると分析結果がここに表示されます
+                    </p>
+                </div>
+
+                <div id="performanceSection" class="performance-section hidden">
+                    <h4 class="performance-title">⚡ パフォーマンス監視</h4>
+                    <div id="performanceMetrics" class="performance-metrics"></div>
+                </div>
+
+                <div id="recommendationsSection" class="recommendations hidden">
+                    <h4>💡 最適化推奨事項</h4>
+                    <div id="recommendationsList"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class EnhancedPostureAnalyzer {
+            constructor() {
+                this.apiUrl = 'http://127.0.0.1:8000';
+                this.fileInput = document.getElementById('fileInput');
+                this.uploadButton = document.getElementById('uploadButton');
+                this.uploadSection = document.getElementById('uploadSection');
+                this.progressContainer = document.getElementById('progressContainer');
+                this.progressBar = document.getElementById('progressBar');
+                this.statusMessage = document.getElementById('statusMessage');
+                this.poseCanvas = document.getElementById('poseCanvas');
+                this.resultsContent = document.getElementById('resultsContent');
+                this.performanceSection = document.getElementById('performanceSection');
+                this.performanceMetrics = document.getElementById('performanceMetrics');
+                this.recommendationsSection = document.getElementById('recommendationsSection');
+                this.recommendationsList = document.getElementById('recommendationsList');
+                
+                this.initializeEventListeners();
+                this.loadPerformanceData();
+            }
+
+            initializeEventListeners() {
+                this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
+                
+                // ドラッグ&ドロップ
+                this.uploadSection.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    this.uploadSection.classList.add('dragover');
+                });
+                
+                this.uploadSection.addEventListener('dragleave', () => {
+                    this.uploadSection.classList.remove('dragover');
+                });
+                
+                this.uploadSection.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    this.uploadSection.classList.remove('dragover');
+                    
+                    const files = e.dataTransfer.files;
+                    if (files.length > 0) {
+                        this.processFile(files[0]);
+                    }
+                });
+            }
+
+            handleFileSelect(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    this.processFile(file);
+                }
+            }
+
+            async processFile(file) {
+                if (!this.validateFile(file)) return;
+
+                this.showStatus('info', `📤 ${file.name}をアップロード中...`);
+                this.setLoadingState(true);
+                this.showProgress(0);
+
+                try {
+                    // ファイル読み込み
+                    this.showProgress(20);
+                    await this.delay(200);
+
+                    // API呼び出し
+                    this.showStatus('info', '🔍 姿勢分析実行中...');
+                    this.showProgress(40);
+
+                    const result = await this.analyzeImage(file);
+                    this.showProgress(80);
+
+                    // 結果表示
+                    this.showStatus('success', '✅ 分析完了!');
+                    this.showProgress(100);
+                    
+                    await this.delay(500);
+                    this.displayResults(result);
+                    this.loadPerformanceData();
+
+                } catch (error) {
+                    this.showStatus('error', `❌ エラー: ${error.message}`);
+                    console.error('Analysis error:', error);
+                } finally {
+                    this.setLoadingState(false);
+                    setTimeout(() => this.hideProgress(), 1000);
+                }
+            }
+
+            validateFile(file) {
+                const maxSize = 10 * 1024 * 1024; // 10MB
+                const allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+
+                if (!allowedTypes.includes(file.type)) {
+                    this.showStatus('error', '❌ JPEGまたはPNG形式の画像を選択してください');
+                    return false;
+                }
+
+                if (file.size > maxSize) {
+                    this.showStatus('error', '❌ ファイルサイズは10MB以下にしてください');
+                    return false;
+                }
+
+                return true;
+            }
+
+            async analyzeImage(file) {
+                const formData = new FormData();
+                formData.append('file', file);
+
+                const response = await fetch(`${this.apiUrl}/analyze-posture`, {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json().catch(() => ({ detail: 'Unknown error' }));
+                    throw new Error(errorData.detail || `HTTP ${response.status}`);
+                }
+
+                return await response.json();
+            }
+
+            displayResults(data) {
+                // 基本メトリクス表示
+                const metricsHtml = `
+                    <div class="overall-score">
+                        <div class="score-value">${data.overall_score?.toFixed(1) || 'N/A'}</div>
+                        <div>総合スコア</div>
+                    </div>
+                    
+                    <div class="metrics-grid">
+                        <div class="metric-card">
+                            <div class="metric-value">${data.metrics?.pelvic_tilt?.toFixed(1) || 'N/A'}°</div>
+                            <div class="metric-label">骨盤傾斜</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${data.metrics?.thoracic_kyphosis?.toFixed(1) || 'N/A'}°</div>
+                            <div class="metric-label">胸椎後弯</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${data.metrics?.cervical_lordosis?.toFixed(1) || 'N/A'}°</div>
+                            <div class="metric-label">頸椎前弯</div>
+                        </div>
+                        <div class="metric-card">
+                            <div class="metric-value">${data.metrics?.head_forward_posture?.toFixed(1) || 'N/A'}cm</div>
+                            <div class="metric-label">頭部前方位</div>
+                        </div>
+                    </div>
+                `;
+
+                this.resultsContent.innerHTML = metricsHtml;
+
+                // 姿勢可視化
+                if (data.landmarks) {
+                    this.drawPoseLandmarks(data.landmarks, data.image_width, data.image_height);
+                }
+            }
+
+            drawPoseLandmarks(landmarks, imageWidth, imageHeight) {
+                const canvas = this.poseCanvas;
+                const ctx = canvas.getContext('2d');
+                
+                // キャンバスサイズ調整
+                const maxWidth = 400;
+                const maxHeight = 300;
+                const scale = Math.min(maxWidth / imageWidth, maxHeight / imageHeight);
+                
+                canvas.width = imageWidth * scale;
+                canvas.height = imageHeight * scale;
+                canvas.style.display = 'block';
+
+                // 背景
+                ctx.fillStyle = '#f0f0f0';
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // ランドマーク描画
+                ctx.fillStyle = '#ff4444';
+                ctx.strokeStyle = '#0066cc';
+                ctx.lineWidth = 2;
+
+                // 主要な接続線
+                const connections = [
+                    ['left_shoulder', 'right_shoulder'],
+                    ['left_shoulder', 'left_elbow'],
+                    ['left_elbow', 'left_wrist'],
+                    ['right_shoulder', 'right_elbow'],
+                    ['right_elbow', 'right_wrist'],
+                    ['left_shoulder', 'left_hip'],
+                    ['right_shoulder', 'right_hip'],
+                    ['left_hip', 'right_hip'],
+                    ['left_hip', 'left_knee'],
+                    ['left_knee', 'left_ankle'],
+                    ['right_hip', 'right_knee'],
+                    ['right_knee', 'right_ankle']
+                ];
+
+                // 線を描画
+                ctx.beginPath();
+                connections.forEach(([start, end]) => {
+                    const startPoint = landmarks[start];
+                    const endPoint = landmarks[end];
+                    
+                    if (startPoint && endPoint) {
+                        ctx.moveTo(startPoint.x * canvas.width, startPoint.y * canvas.height);
+                        ctx.lineTo(endPoint.x * canvas.width, endPoint.y * canvas.height);
+                    }
+                });
+                ctx.stroke();
+
+                // ポイントを描画
+                Object.entries(landmarks).forEach(([name, point]) => {
+                    if (point && point.visibility > 0.5) {
+                        ctx.beginPath();
+                        ctx.arc(point.x * canvas.width, point.y * canvas.height, 4, 0, 2 * Math.PI);
+                        ctx.fill();
+                    }
+                });
+            }
+
+            async loadPerformanceData() {
+                try {
+                    const [summaryResponse, recommendationsResponse] = await Promise.all([
+                        fetch(`${this.apiUrl}/api/performance/summary`),
+                        fetch(`${this.apiUrl}/api/performance/recommendations`)
+                    ]);
+
+                    if (summaryResponse.ok) {
+                        const summary = await summaryResponse.json();
+                        this.displayPerformanceMetrics(summary);
+                    }
+
+                    if (recommendationsResponse.ok) {
+                        const recommendations = await recommendationsResponse.json();
+                        this.displayRecommendations(recommendations.recommendations);
+                    }
+                } catch (error) {
+                    console.log('Performance data not available:', error);
+                }
+            }
+
+            displayPerformanceMetrics(summary) {
+                if (!summary.performance_metrics) return;
+
+                const metrics = summary.performance_metrics;
+                const html = `
+                    <div class="performance-metric">
+                        <strong>${metrics.avg_processing_time?.toFixed(2) || 'N/A'}s</strong>
+                        <div>平均処理時間</div>
+                    </div>
+                    <div class="performance-metric">
+                        <strong>${summary.success_rate ? (summary.success_rate * 100).toFixed(1) : 'N/A'}%</strong>
+                        <div>成功率</div>
+                    </div>
+                    <div class="performance-metric">
+                        <strong>${metrics.avg_cpu_usage?.toFixed(1) || 'N/A'}%</strong>
+                        <div>CPU使用率</div>
+                    </div>
+                    <div class="performance-metric">
+                        <strong>${metrics.avg_memory_usage?.toFixed(1) || 'N/A'}%</strong>
+                        <div>メモリ使用率</div>
+                    </div>
+                `;
+
+                this.performanceMetrics.innerHTML = html;
+                this.performanceSection.classList.remove('hidden');
+            }
+
+            displayRecommendations(recommendations) {
+                if (!recommendations || recommendations.length === 0) return;
+
+                const html = recommendations.map(rec => `<p>• ${rec}</p>`).join('');
+                this.recommendationsList.innerHTML = html;
+                this.recommendationsSection.classList.remove('hidden');
+            }
+
+            showStatus(type, message) {
+                this.statusMessage.className = `status-message status-${type}`;
+                this.statusMessage.textContent = message;
+                this.statusMessage.style.display = 'block';
+            }
+
+            setLoadingState(loading) {
+                this.uploadButton.disabled = loading;
+                this.uploadButton.innerHTML = loading ? 
+                    '<span class="spinner"></span> 処理中...' : 
+                    '📁 ファイルを選択';
+            }
+
+            showProgress(percent) {
+                this.progressContainer.style.display = 'block';
+                this.progressBar.style.width = `${percent}%`;
+            }
+
+            hideProgress() {
+                this.progressContainer.style.display = 'none';
+                this.progressBar.style.width = '0%';
+            }
+
+            delay(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+        }
+
+        // アプリケーション初期化
+        document.addEventListener('DOMContentLoaded', () => {
+            new EnhancedPostureAnalyzer();
+        });
+    </script>
+</body>
+</html>

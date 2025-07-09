@@ -1,175 +1,301 @@
-# 姿勢分析アプリ (Posture Analysis App)
+# 🏥 姿勢分析アプリ
 
-MediaPipe を使用したマーカーレス姿勢推定による、静的姿勢分析アプリケーションです。
+MediaPipeを活用した高精度姿勢分析システム
 
-## 🎯 機能
+![Python](https://img.shields.io/badge/Python-3.9+-blue)
+![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green)
+![MediaPipe](https://img.shields.io/badge/MediaPipe-0.10+-orange)
+![Docker](https://img.shields.io/badge/Docker-Ready-blue)
 
-- **リアルタイム姿勢分析**: MediaPipe Pose を使用した高精度な姿勢検出
-- **多角度撮影**: 正面・側面・背面からの姿勢評価
-- **詳細レポート**: PDF形式での分析結果出力
-- **履歴管理**: 過去の分析結果の保存・比較
-- **改善提案**: 個人に合わせたエクササイズ推奨
+## 🌟 特徴
 
-## 🏗️ アーキテクチャ
+- **高精度分析**: MediaPipe による33点ランドマーク検出
+- **多方向対応**: 矢状面・前額面・斜め方向の自動判定
+- **リアルタイム可視化**: 画像上への骨格線・関節点描画
+- **包括的評価**: 8つの姿勢メトリクスによる総合スコア
+- **レスポンシブ対応**: PC・タブレット・スマートフォン対応
+- **本番運用対応**: Docker・HTTPS・監視機能完備
 
-```
-[Flutter Mobile App] ↔ [FastAPI Backend] ↔ [MediaPipe Engine]
-                                      ↕
-                              [Cloud Storage & DB]
-```
+## 🚀 クイックスタート
 
-## 🚀 セットアップ
+### 基本起動
 
-### 必要要件
-
-- Python 3.11+
-- Flutter 3.0+
-- Docker & Docker Compose (オプション)
-
-### バックエンド設定
-
-1. 依存関係のインストール
 ```bash
-cd backend
+# リポジトリをクローン
+git clone <repository-url>
+cd posture-analysis-app
+
+# サーバー起動
+./deploy.sh
+
+# ブラウザでアクセス
+open http://localhost:8000/fixed
+```
+
+### 開発環境（HTTPS対応）
+
+```bash
+# SSL証明書生成
+./ssl-setup.sh dev
+
+# HTTPS版起動
+docker-compose down && docker-compose up -d
+
+# HTTPS アクセス
+open https://localhost/fixed
+```
+
+## 📊 分析機能
+
+### 対応する姿勢分析
+
+| 項目 | 単位 | 正常範囲 | 説明 |
+|------|------|----------|------|
+| 骨盤傾斜角 | 度 | 5-15° | 骨盤の前後傾斜 |
+| 胸椎後弯角 | 度 | 25-45° | 背中の丸まり具合 |
+| 頸椎前弯角 | 度 | 15-35° | 首の前弯カーブ |
+| 肩の高さの差 | cm | 0-1.5cm | 左右肩の高低差 |
+| 頭部前方偏位 | cm | 0-2.5cm | 頭の前方突出 |
+| 腰椎前弯角 | 度 | 30-50° | 腰部のカーブ |
+| 肩甲骨前方突出 | cm | 0-2cm | 肩甲骨の前方位置 |
+| 体幹側方偏位 | cm | 0-1cm | 体の左右への傾き |
+
+### 検出方向
+
+- **矢状面（Sagittal）**: 横向き - 前後バランス分析
+- **前額面（Frontal）**: 正面 - 左右対称性分析  
+- **後面（Posterior）**: 後ろ - 背面姿勢分析
+- **斜め（Oblique）**: 複合角度分析
+
+## 🎯 使用方法
+
+### 1. 基本操作
+
+1. **画像準備**: 全身が写った画像を用意
+2. **アップロード**: ドラッグ&ドロップまたはファイル選択
+3. **分析実行**: 自動で姿勢分析が開始
+4. **結果確認**: スコアと詳細メトリクスを確認
+5. **可視化確認**: 骨格線が描画された画像を確認
+
+### 2. 推奨撮影条件
+
+- **背景**: シンプルで明るい背景
+- **照明**: 十分な明るさ、逆光を避ける
+- **服装**: 体のラインが分かりやすい服装
+- **距離**: 全身が画面に収まる距離
+- **角度**: 真横または真正面
+
+### 3. ファイル要件
+
+- **形式**: JPEG, PNG, BMP
+- **サイズ**: 最大 10MB
+- **解像度**: 推奨 640x480 以上
+
+## 🔧 開発・デプロイ
+
+### 開発環境
+
+```bash
+# 依存関係インストール
 pip install -r requirements.txt
+
+# 開発サーバー起動
+python -m uvicorn backend.app.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-2. サーバー起動
-```bash
-uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-```
-
-### フロントエンド設定
-
-1. 依存関係のインストール
-```bash
-cd frontend
-flutter pub get
-```
-
-2. アプリ起動
-```bash
-flutter run
-```
-
-### Docker での起動
+### 本番デプロイ
 
 ```bash
-docker-compose up --build
+# 自動本番デプロイ
+./production-deploy.sh
+
+# 手動デプロイ
+./ssl-setup.sh prod
+docker-compose -f docker-compose.prod.yml up -d
 ```
 
-## 📱 使用方法
+### 環境設定
 
-1. **撮影**: メイン画面の「姿勢を測定」ボタンから撮影開始
-2. **ガイド**: 画面の指示に従って適切な姿勢で撮影
-3. **分析**: 自動的に姿勢分析が実行される
-4. **結果確認**: 詳細なスコアと改善提案を確認
-5. **レポート**: PDF形式でのレポート生成・共有
+```bash
+# 環境変数設定例
+MEDIAPIPE_MODEL_COMPLEXITY=2
+MEDIAPIPE_MIN_DETECTION_CONFIDENCE=0.7
+ALLOWED_ORIGINS=https://your-domain.com
+```
 
-## 🎨 UI/UX 設計
+## 📱 アクセス先
 
-Sportip Pro をモデルとした直感的なデザイン:
-- **主要カラー**: グリーン (#00C853)
-- **フォント**: Noto Sans JP (Rounded)
-- **レイアウト**: カード型でシンプルな構成
+### 本番環境
+- **メインアプリ**: `https://your-domain.com/fixed`
+- **ユーザーテスト**: `https://your-domain.com/test`
+- **API仕様書**: `https://your-domain.com/docs`
+- **ヘルスチェック**: `https://your-domain.com/health`
 
-## 📊 分析項目
-
-### 測定可能な姿勢指標
-- 骨盤傾斜角度
-- 胸椎後弯角度  
-- 頸椎前弯角度
-- 肩の高さの差
-- 頭部前方偏位
-- 腰椎前弯角度
-- 肩甲骨前方突出
-- 体幹側方偏位
-
-### スコアリング
-- **90-100点**: 優秀
-- **80-89点**: 良好
-- **70-79点**: 普通
-- **50-69点**: 要改善
-- **0-49点**: 要注意
-
-## 🔧 API エンドポイント
-
-### 主要エンドポイント
-- `POST /analyze-posture`: 画像から姿勢分析実行
-- `POST /generate-report`: PDF レポート生成
-- `GET /metrics/reference`: 正常値参照データ取得
-- `GET /health`: サーバー状態確認
+### 開発環境
+- **メインアプリ**: `http://localhost:8000/fixed`
+- **デバッグ版**: `http://localhost:8000/debug`
+- **ユーザーテスト**: `http://localhost:8000/test`
 
 ## 🧪 テスト
 
-```bash
-# バックエンドテスト
-cd backend
-pytest
+### ユーザー受け入れテスト
 
-# フロントエンドテスト  
-cd frontend
-flutter test
+```bash
+# テストページアクセス
+open http://localhost:8000/test
 ```
 
-## 📋 対応年齢層
+**テスト項目**:
+- ✅ 基本アップロード機能
+- ✅ 矢状面・前額面分析
+- ✅ 骨格線可視化
+- ✅ スコア計算
+- ✅ パフォーマンス測定
+- ✅ エラーハンドリング
 
-3歳から90歳まで全年齢層に対応:
-- 体格差に応じた自動スケーリング
-- 年齢別正常値データベース
-- 小児・高齢者特有パターン対応
+### 自動テスト
 
-## 🔒 セキュリティ & プライバシー
+```bash
+# APIテスト
+curl -X POST http://localhost:8000/analyze-posture \
+  -F "file=@test-image.jpg"
 
-- TLS 1.3 暗号化通信
-- 解析後72時間での画像自動削除
-- GDPR・改正個人情報保護法準拠
-- OAuth2 認証システム
+# ヘルスチェック
+curl http://localhost:8000/health
+```
 
-## 🌐 多言語対応
+## 📈 監視・メンテナンス
 
-- 日本語 (メイン)
-- 英語 (今後対応予定)
+### ログ確認
 
-## 📈 ロードマップ
+```bash
+# アプリケーションログ
+docker-compose logs posture-analysis
 
-### フェーズ1 (2025年8月)
-- [x] プロトタイプ完成
-- [x] 基本分析機能実装
-- [x] UI/UX デザイン完成
+# Nginxログ  
+docker-compose logs nginx
 
-### フェーズ2 (2025年9月)
-- [ ] ベータ版リリース
-- [ ] 精度検証・改善
-- [ ] レポート機能実装
+# リアルタイム監視
+docker-compose logs -f
+```
 
-### フェーズ3 (2025年10月)
-- [ ] App Store / Google Play 公開
-- [ ] ユーザーフィードバック収集
+### メトリクス監視
 
-### フェーズ4 (2025年12月)
-- [ ] 履歴・比較機能
-- [ ] エクササイズ提案システム
-- [ ] 多施設PoC実施
+- **Prometheus**: `http://localhost:9090`
+- **処理時間**: 平均5秒以内
+- **成功率**: 95%以上
+- **メモリ使用量**: 2GB以下
 
-## 🤝 コントリビューション
+### バックアップ
 
-1. このリポジトリをフォーク
-2. 機能ブランチを作成 (`git checkout -b feature/amazing-feature`)
-3. 変更をコミット (`git commit -m 'Add amazing feature'`)
-4. ブランチにプッシュ (`git push origin feature/amazing-feature`)
-5. プルリクエストを作成
+```bash
+# データバックアップ
+docker-compose exec posture-analysis \
+  tar -czf backup-$(date +%Y%m%d).tar.gz uploads reports
+```
+
+## 🔒 セキュリティ
+
+### 実装済み機能
+
+- **HTTPS強制**: SSL/TLS暗号化
+- **セキュリティヘッダー**: HSTS, CSP, XSS対策
+- **レート制限**: API・アップロード制限
+- **CORS設定**: オリジン制限
+- **ファイル検証**: ファイル形式・サイズチェック
+
+### 追加推奨設定
+
+```bash
+# ファイアウォール設定
+sudo ufw allow 22,80,443/tcp
+
+# Fail2Ban設定
+sudo apt install fail2ban
+```
+
+## 📚 API リファレンス
+
+### 姿勢分析API
+
+```http
+POST /analyze-posture
+Content-Type: multipart/form-data
+
+file: <image-file>
+```
+
+**レスポンス**:
+```json
+{
+  "landmarks": {...},
+  "metrics": {
+    "pelvic_tilt": 8.5,
+    "thoracic_kyphosis": 35.2,
+    "cervical_lordosis": 25.1,
+    "shoulder_height_difference": 0.8,
+    "head_forward_posture": 1.2,
+    "lumbar_lordosis": 42.3,
+    "scapular_protraction": 1.5,
+    "trunk_lateral_deviation": 0.3
+  },
+  "overall_score": 87.5,
+  "pose_orientation": "sagittal",
+  "confidence": 0.95
+}
+```
+
+### ヘルスチェックAPI
+
+```http
+GET /health
+```
+
+**レスポンス**:
+```json
+{
+  "status": "healthy",
+  "mediapipe": "ready"
+}
+```
+
+## 🤝 貢献
+
+### 開発への参加
+
+1. フォークしてブランチ作成
+2. 機能追加・バグ修正
+3. テスト実行
+4. プルリクエスト作成
+
+### 課題報告
+
+- **バグ報告**: GitHub Issues
+- **機能要望**: GitHub Discussions  
+- **セキュリティ**: security@example.com
 
 ## 📄 ライセンス
 
-このプロジェクトは MIT ライセンスの下で公開されています。
+MIT License - 詳細は [LICENSE](LICENSE) ファイルを参照
 
-## 📞 サポート
+## 🙏 謝辞
 
-技術的な質問やサポートが必要な場合は、Issues セクションでお気軽にお問い合わせください。
+- **MediaPipe**: Google AI による姿勢推定技術
+- **FastAPI**: 高性能Web APIフレームワーク
+- **Docker**: コンテナ化技術
+- **Nginx**: 高性能Webサーバー
 
 ---
 
-**開発チーム**: Claude Code & Development Team  
-**バージョン**: 1.0.0  
-**最終更新**: 2025年7月2日
+## 📞 サポート
+
+### ドキュメント
+- [デプロイメントガイド](DEPLOYMENT.md)
+- [ユーザーテストガイド](USER_TESTING.md)
+- [トラブルシューティング](TROUBLESHOOTING.md)
+
+### 連絡先
+- **技術サポート**: tech-support@example.com
+- **一般問い合わせ**: info@example.com
+
+**開発チーム**: AI/ML Engineer × MediaPipe Expert

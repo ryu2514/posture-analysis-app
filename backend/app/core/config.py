@@ -1,8 +1,8 @@
-from pydantic import BaseSettings
+from pydantic import BaseModel
 from typing import List
 import os
 
-class Settings(BaseSettings):
+class Settings(BaseModel):
     PROJECT_NAME: str = "Posture Analysis API"
     VERSION: str = "1.0.0"
     API_V1_STR: str = "/api/v1"
@@ -12,6 +12,8 @@ class Settings(BaseSettings):
         "http://localhost:3000",
         "http://localhost:8080",
         "http://localhost:5000",
+        "http://127.0.0.1:8000",
+        "http://localhost:8000",
         "https://posture-analysis.vercel.app"
     ]
     
@@ -50,7 +52,6 @@ class Settings(BaseSettings):
     
     class Config:
         env_file = ".env"
-        case_sensitive = True
 
 settings = Settings()
 

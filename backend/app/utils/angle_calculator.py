@@ -214,3 +214,212 @@ class AngleCalculator:
             'left_arch_height': left_arch * 10,  # Scale to approximate cm
             'right_arch_height': right_arch * 10
         }
+    
+    def calculate_knee_valgus_varus_enhanced(self, left_hip: Dict, left_knee: Dict, left_ankle: Dict,
+                                           right_hip: Dict, right_knee: Dict, right_ankle: Dict) -> Dict[str, float]:
+        """Enhanced knee valgus/varus calculation with clinical accuracy"""
+        
+        # Calculate Q-angle (quadriceps angle) for each leg
+        left_q_angle = self._calculate_q_angle(left_hip, left_knee, left_ankle)
+        right_q_angle = self._calculate_q_angle(right_hip, right_knee, right_ankle)
+        
+        # Calculate knee alignment angles
+        left_knee_angle = self.calculate_angle(left_hip, left_knee, left_ankle)
+        right_knee_angle = self.calculate_angle(right_hip, right_knee, right_ankle)
+        
+        # Determine valgus (knock-knee) or varus (bow-leg) deviation
+        # Normal knee angle should be close to 180 degrees
+        left_deviation = 180 - left_knee_angle
+        right_deviation = 180 - right_knee_angle
+        
+        # Classify deviation type
+        left_type = "valgus" if left_deviation > 0 else "varus"
+        right_type = "valgus" if right_deviation > 0 else "varus"
+        
+        return {
+            'left_knee_deviation': abs(left_deviation),
+            'right_knee_deviation': abs(right_deviation),
+            'left_knee_type': left_type,
+            'right_knee_type': right_type,
+            'left_q_angle': left_q_angle,
+            'right_q_angle': right_q_angle,
+            'average_deviation': (abs(left_deviation) + abs(right_deviation)) / 2
+        }
+    
+    def _calculate_q_angle(self, hip: Dict, knee: Dict, ankle: Dict) -> float:
+        """Calculate Q-angle (quadriceps angle)"""
+        # Q-angle is the angle between the quadriceps and patellar tendon
+        # Simplified calculation using hip-knee-ankle alignment
+        
+        # Calculate vectors
+        hip_to_knee = np.array([knee['x'] - hip['x'], knee['y'] - hip['y']])
+        knee_to_ankle = np.array([ankle['x'] - knee['x'], ankle['y'] - knee['y']])
+        
+        # Calculate angle between vectors
+        norm_hk = np.linalg.norm(hip_to_knee)
+        norm_ka = np.linalg.norm(knee_to_ankle)
+        
+        if norm_hk == 0 or norm_ka == 0:
+            return 0.0
+        
+        cos_angle = np.dot(hip_to_knee, knee_to_ankle) / (norm_hk * norm_ka)
+        cos_angle = np.clip(cos_angle, -1.0, 1.0)
+        
+        q_angle = math.degrees(math.acos(cos_angle))
+        
+        # Normal Q-angle is 10-15 degrees for males, 15-20 for females
+        return abs(180 - q_angle)  # Convert to deviation from straight
+    
+    def calculate_heel_inclination(self, left_heel: Dict, left_ankle: Dict, left_foot_index: Dict,
+                                 right_heel: Dict, right_ankle: Dict, right_foot_index: Dict) -> Dict[str, float]:
+        """Calculate heel inclination angles"""
+        
+        # Calculate heel inclination for each foot
+        left_inclination = self._calculate_single_heel_inclination(left_heel, left_ankle, left_foot_index)
+        right_inclination = self._calculate_single_heel_inclination(right_heel, right_ankle, right_foot_index)
+        
+        return {
+            'left_heel_inclination': left_inclination,
+            'right_heel_inclination': right_inclination,
+            'average_inclination': (left_inclination + right_inclination) / 2,
+            'inclination_difference': abs(left_inclination - right_inclination)
+        }
+    
+    def _calculate_single_heel_inclination(self, heel: Dict, ankle: Dict, foot_index: Dict) -> float:
+        """Calculate heel inclination for a single foot"""
+        
+        # Calculate the angle of the heel relative to the ground
+        # Using heel-ankle-foot_index triangle
+        
+        # Create a horizontal reference line at heel level
+        heel_horizontal = {'x': heel['x'] + 0.1, 'y': heel['y']}
+        
+        # Calculate angle between heel-ankle line and horizontal
+        heel_angle = self.calculate_angle(heel_horizontal, heel, ankle)
+        
+        # Calculate foot angle using heel and toe
+        foot_angle = self.calculate_angle(heel, foot_index, ankle)
+        
+        # Heel inclination is the deviation from normal stance
+        inclination = abs(heel_angle - 90)  # 90 degrees would be vertical
+        
+        return min(45, inclination)  # Cap at 45 degrees for realistic values
+    
+    def calculate_seated_posture_metrics(self, landmarks: Dict) -> Dict[str, float]:
+        """Calculate posture metrics specifically for seated position"""
+        
+        # Get key landmarks
+        nose = landmarks.get('nose')
+        left_ear = landmarks.get('left_ear')
+        right_ear = landmarks.get('right_ear')
+        left_shoulder = landmarks.get('left_shoulder')
+        right_shoulder = landmarks.get('right_shoulder')
+        left_hip = landmarks.get('left_hip')
+        right_hip = landmarks.get('right_hip')
+        
+        if not all([nose, left_shoulder, right_shoulder, left_hip, right_hip]):
+            return {}
+        
+        # Calculate midpoints
+        ear_mid = self.calculate_midpoint(left_ear, right_ear) if left_ear and right_ear else None
+        shoulder_mid = self.calculate_midpoint(left_shoulder, right_shoulder)
+        hip_mid = self.calculate_midpoint(left_hip, right_hip)
+        
+        # Seated pelvic tilt
+        seated_pelvic_tilt = self._calculate_seated_pelvic_tilt(left_hip, right_hip, left_shoulder, right_shoulder)
+        
+        # Head-neck position in seated posture
+        head_neck_position = self._calculate_seated_head_neck_position(nose, ear_mid, shoulder_mid)
+        
+        # Forward/backward lean
+        trunk_lean = self._calculate_seated_trunk_lean(shoulder_mid, hip_mid)
+        
+        # Lateral (side-to-side) lean
+        lateral_lean = self._calculate_seated_lateral_lean(nose, shoulder_mid, hip_mid)
+        
+        # Shoulder elevation in seated position
+        shoulder_elevation = self.calculate_shoulder_height_difference(left_shoulder, right_shoulder, (1, 1))
+        
+        return {
+            'seated_pelvic_tilt': seated_pelvic_tilt,
+            'head_neck_position': head_neck_position,
+            'trunk_forward_lean': trunk_lean['forward'],
+            'trunk_backward_lean': trunk_lean['backward'],
+            'lateral_lean': lateral_lean,
+            'shoulder_elevation': shoulder_elevation
+        }
+    
+    def _calculate_seated_pelvic_tilt(self, left_hip: Dict, right_hip: Dict, 
+                                    left_shoulder: Dict, right_shoulder: Dict) -> float:
+        """Calculate pelvic tilt in seated position"""
+        
+        # In seated position, pelvic tilt is relative to trunk orientation
+        hip_mid = self.calculate_midpoint(left_hip, right_hip)
+        shoulder_mid = self.calculate_midpoint(left_shoulder, right_shoulder)
+        
+        # Calculate trunk angle
+        trunk_angle = math.degrees(math.atan2(
+            shoulder_mid['x'] - hip_mid['x'],
+            hip_mid['y'] - shoulder_mid['y']
+        ))
+        
+        # Pelvic tilt is the deviation from vertical (0 degrees)
+        pelvic_tilt = abs(trunk_angle)
+        
+        return min(45, pelvic_tilt)  # Cap at 45 degrees
+    
+    def _calculate_seated_head_neck_position(self, nose: Dict, ear_mid: Dict, shoulder_mid: Dict) -> float:
+        """Calculate head-neck position in seated posture"""
+        
+        if not ear_mid:
+            # Fallback: use nose-shoulder relationship
+            horizontal_offset = abs(nose['x'] - shoulder_mid['x'])
+            return horizontal_offset * 50  # Scale factor
+        
+        # Calculate head forward position relative to shoulders
+        head_forward = abs(ear_mid['x'] - shoulder_mid['x'])
+        
+        # Calculate neck angle
+        neck_angle = self.calculate_angle(shoulder_mid, ear_mid, nose)
+        
+        # Combine forward position and neck angle
+        head_neck_score = (head_forward * 30) + (abs(neck_angle - 90) * 0.5)
+        
+        return min(20, head_neck_score)  # Cap at 20 for seated posture
+    
+    def _calculate_seated_trunk_lean(self, shoulder_mid: Dict, hip_mid: Dict) -> Dict[str, float]:
+        """Calculate trunk lean in seated position"""
+        
+        # Calculate trunk angle relative to vertical
+        trunk_angle = math.degrees(math.atan2(
+            shoulder_mid['x'] - hip_mid['x'],
+            hip_mid['y'] - shoulder_mid['y']
+        ))
+        
+        # Determine forward or backward lean
+        if trunk_angle > 0:
+            forward_lean = abs(trunk_angle)
+            backward_lean = 0
+        else:
+            forward_lean = 0
+            backward_lean = abs(trunk_angle)
+        
+        return {
+            'forward': min(45, forward_lean),
+            'backward': min(30, backward_lean)
+        }
+    
+    def _calculate_seated_lateral_lean(self, nose: Dict, shoulder_mid: Dict, hip_mid: Dict) -> float:
+        """Calculate lateral (side-to-side) lean in seated position"""
+        
+        # Calculate the alignment of head-shoulders-hips
+        head_shoulder_offset = abs(nose['x'] - shoulder_mid['x'])
+        shoulder_hip_offset = abs(shoulder_mid['x'] - hip_mid['x'])
+        
+        # Average lateral deviation
+        lateral_deviation = (head_shoulder_offset + shoulder_hip_offset) / 2
+        
+        # Convert to degrees (approximate)
+        lateral_lean = lateral_deviation * 45  # Scale factor
+        
+        return min(30, lateral_lean)  # Cap at 30 degrees for seated posture

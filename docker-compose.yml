@@ -1,33 +1,38 @@
 version: '3.8'
 
 services:
-  backend:
-    build: ./backend
+  posture-analysis:
+    build: .
     ports:
       - "8000:8000"
     environment:
       - PYTHONPATH=/app
+      - UVICORN_HOST=0.0.0.0
+      - UVICORN_PORT=8000
     volumes:
-      - ./backend/uploads:/app/uploads
-      - ./backend/reports:/app/reports
-    networks:
-      - posture-network
+      - ./uploads:/app/uploads
+      - ./reports:/app/reports
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
-  # Add frontend build service (optional for development)
-  frontend-build:
-    image: flutter:latest
-    working_dir: /app
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
     volumes:
-      - ./frontend:/app
-    command: flutter build web
-    profiles:
-      - build
-
-networks:
-  posture-network:
-    driver: bridge
+      - ./nginx.conf:/etc/nginx/nginx.conf
+      - ./ssl:/etc/nginx/ssl
+    depends_on:
+      - posture-analysis
+    restart: unless-stopped
 
 volumes:
   uploads:
   reports:
+  ssl:
