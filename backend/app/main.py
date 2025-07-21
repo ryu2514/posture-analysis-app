@@ -335,6 +335,9 @@ async def clear_performance_history():
         logger.error("パフォーマンス履歴クリアエラー", error=e)
         raise HTTPException(status_code=500, detail=f"Performance clear failed: {str(e)}")
 
+# Mount static files after all routes are defined
+app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
