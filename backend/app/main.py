@@ -93,10 +93,13 @@ if os.path.exists(static_dir):
     async def serve_icons(icon_name: str):
         """アイコンファイルを提供"""
         icon_path = os.path.join(static_dir, "icons", icon_name)
+        print(f"Looking for icon at: {icon_path}")  # デバッグ
+        print(f"Static dir: {static_dir}")  # デバッグ
+        print(f"Icon exists: {os.path.exists(icon_path)}")  # デバッグ
         if os.path.exists(icon_path):
             return FileResponse(icon_path)
         else:
-            raise HTTPException(status_code=404, detail=f"Icon {icon_name} not found")
+            raise HTTPException(status_code=404, detail=f"Icon {icon_name} not found at {icon_path}")
     
 
 pose_analyzer = PoseAnalyzer()
