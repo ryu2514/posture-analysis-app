@@ -16,9 +16,9 @@ class PostureAnalysisLogger:
     def __init__(self, name: str = "posture_analysis", log_level: str = "INFO"):
         self.name = name
         self.logger = logging.getLogger(name)
-        self.setup_logger(log_level)
         self.performance_data = {}
         self.session_id = datetime.now().strftime("%Y%m%d_%H%M%S")
+        self.setup_logger(log_level)
         
     def setup_logger(self, log_level: str):
         """ロガーの詳細設定"""
@@ -130,7 +130,7 @@ class PostureAnalysisLogger:
         self.info(
             "画像処理開始",
             component="image_processor",
-            filename=filename,
+            image_filename=filename,
             file_size=size,
             file_format=format
         )
