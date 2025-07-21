@@ -89,17 +89,6 @@ if os.path.exists(static_dir):
         else:
             raise HTTPException(status_code=404)
     
-    @app.get("/icons/{icon_name}")
-    async def serve_icons(icon_name: str):
-        """アイコンファイルを提供"""
-        icon_path = os.path.join(static_dir, "icons", icon_name)
-        print(f"Looking for icon at: {icon_path}")  # デバッグ
-        print(f"Static dir: {static_dir}")  # デバッグ
-        print(f"Icon exists: {os.path.exists(icon_path)}")  # デバッグ
-        if os.path.exists(icon_path):
-            return FileResponse(icon_path)
-        else:
-            raise HTTPException(status_code=404, detail=f"Icon {icon_name} not found at {icon_path}")
     
 
 pose_analyzer = PoseAnalyzer()
@@ -359,6 +348,35 @@ async def clear_performance_history():
     except Exception as e:
         logger.error("パフォーマンス履歴クリアエラー", error=e)
         raise HTTPException(status_code=500, detail=f"Performance clear failed: {str(e)}")
+
+# Mount specific icon routes before static files
+@app.get("/icons/Icon-192.png")
+async def icon_192():
+    icon_path = os.path.join(static_dir, "icons", "Icon-192.png")
+    if os.path.exists(icon_path):
+        return FileResponse(icon_path, media_type="image/png")
+    raise HTTPException(status_code=404)
+
+@app.get("/icons/Icon-512.png")
+async def icon_512():
+    icon_path = os.path.join(static_dir, "icons", "Icon-512.png")
+    if os.path.exists(icon_path):
+        return FileResponse(icon_path, media_type="image/png")
+    raise HTTPException(status_code=404)
+
+@app.get("/icons/Icon-maskable-192.png")
+async def icon_maskable_192():
+    icon_path = os.path.join(static_dir, "icons", "Icon-maskable-192.png")
+    if os.path.exists(icon_path):
+        return FileResponse(icon_path, media_type="image/png")
+    raise HTTPException(status_code=404)
+
+@app.get("/icons/Icon-maskable-512.png")
+async def icon_maskable_512():
+    icon_path = os.path.join(static_dir, "icons", "Icon-maskable-512.png")
+    if os.path.exists(icon_path):
+        return FileResponse(icon_path, media_type="image/png")
+    raise HTTPException(status_code=404)
 
 # Mount static files after all routes are defined
 app.mount("/static", StaticFiles(directory=static_dir), name="static")
