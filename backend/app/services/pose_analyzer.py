@@ -39,7 +39,7 @@ class PoseAnalyzer:
         import json
         import os
         
-        config_file = "/Users/kobayashiryuju/posture-analysis-app/optimized_config.json"
+        config_file = "optimized_config.json"
         
         if os.path.exists(config_file):
             try:
@@ -74,16 +74,22 @@ class PoseAnalyzer:
             image_rgb = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
             logger.end_timer(conversion_timer)
             
-            # 画像情報をログ
-            logger.log_image_processing(
-                filename="uploaded_image",
-                size=len(image_data),
-                format=image.format or "unknown"
-            )
-            logger.log_pose_detection_start(
-                image_size=image_rgb.shape[:2],
-                model_complexity=2
-            )
+            # 画像情報をログ（エラー回避のため一時的にコメントアウト）
+            try:
+                logger.log_image_processing(
+                    filename="uploaded_image",
+                    size=len(image_data),
+                    format=image.format or "unknown"
+                )
+            except Exception as log_error:
+                print(f"ログエラー: {log_error}")  # 基本的なprint使用
+            try:
+                logger.log_pose_detection_start(
+                    image_size=image_rgb.shape[:2],
+                    model_complexity=2
+                )
+            except Exception as log_error:
+                print(f"ログエラー: {log_error}")
             
             # 前処理
             preprocessing_timer = logger.start_timer("image_preprocessing")
@@ -100,7 +106,10 @@ class PoseAnalyzer:
             
             # 検出結果の評価
             if not detection_result.success:
-                logger.log_pose_detection_result(success=False)
+                try:
+                    logger.log_pose_detection_result(success=False)
+                except Exception as log_error:
+                    print(f"ログエラー: {log_error}")
                 logger.error("包括的姿勢検出失敗", 
                            image_size=image_rgb.shape,
                            file_size=len(image_data))
@@ -112,11 +121,14 @@ class PoseAnalyzer:
             
             # 検出成功
             results = type('Results', (), {'pose_landmarks': detection_result.landmarks})()
-            logger.log_pose_detection_result(
-                success=True, 
-                landmarks_count=detection_result.landmarks_count,
-                confidence=detection_result.confidence
-            )
+            try:
+                logger.log_pose_detection_result(
+                    success=True, 
+                    landmarks_count=detection_result.landmarks_count,
+                    confidence=detection_result.confidence
+                )
+            except Exception as log_error:
+                print(f"ログエラー: {log_error}")
             logger.info("包括的検出成功", 
                        config_used=detection_result.config_name,
                        processing_time=detection_result.processing_time)
@@ -176,7 +188,10 @@ class PoseAnalyzer:
             )
             
             # メトリクス計算ログ
-            logger.log_metrics_calculation(orientation, metrics.dict())
+            try:
+                logger.log_metrics_calculation(orientation, metrics.dict())
+            except Exception as log_error:
+                print(f"ログエラー: {log_error}")
             
             # 総合スコア計算
             score_timer = logger.start_timer("overall_score_calculation")

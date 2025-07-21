@@ -1,8 +1,10 @@
 from fastapi import FastAPI, File, UploadFile, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.responses import JSONResponse, HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 import asyncio
 import time
+import os
 from typing import Dict, Any
 
 from backend.app.services.pose_analyzer import PoseAnalyzer
@@ -32,6 +34,71 @@ app.add_middleware(
 # Include routers
 app.include_router(reports.router, prefix="/api/reports", tags=["reports"])
 
+# Static files setup
+static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
+
+@app.get("/")
+async def root():
+    """Serve Flutter app or API info"""
+    index_path = os.path.join(static_dir, "index.html")
+    if os.path.exists(index_path):
+        with open(index_path, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read())
+    else:
+        return {"message": "Posture Analysis API", "version": "1.0.0", "docs": "/docs", "frontend": "Flutter app loading..."}
+
+# Serve static files
+if os.path.exists(static_dir):
+    app.mount("/assets", StaticFiles(directory=os.path.join(static_dir, "assets")), name="assets")
+    app.mount("/icons", StaticFiles(directory=os.path.join(static_dir, "icons")), name="icons")
+    app.mount("/canvaskit", StaticFiles(directory=os.path.join(static_dir, "canvaskit")), name="canvaskit")
+    
+    @app.get("/flutter.js")
+    async def flutter_js():
+        return FileResponse(os.path.join(static_dir, "flutter.js"))
+    
+    @app.get("/flutter_bootstrap.js")
+    async def flutter_bootstrap_js():
+        return FileResponse(os.path.join(static_dir, "flutter_bootstrap.js"))
+    
+    @app.get("/flutter_service_worker.js")
+    async def flutter_service_worker_js():
+        return FileResponse(os.path.join(static_dir, "flutter_service_worker.js"))
+    
+    @app.get("/main.dart.js")
+    async def main_dart_js():
+        return FileResponse(os.path.join(static_dir, "main.dart.js"))
+    
+    @app.get("/manifest.json")
+    async def manifest_json():
+        return FileResponse(os.path.join(static_dir, "manifest.json"))
+    
+    @app.get("/favicon.png")
+    async def favicon():
+        file_path = os.path.join(static_dir, "favicon.png")
+        if os.path.exists(file_path):
+            return FileResponse(file_path)
+        else:
+            raise HTTPException(status_code=404)
+    
+    @app.get("/favicon.ico")
+    async def favicon_ico():
+        file_path = os.path.join(static_dir, "favicon.png")
+        if os.path.exists(file_path):
+            return FileResponse(file_path)
+        else:
+            raise HTTPException(status_code=404)
+    
+    @app.get("/icons/{icon_name}")
+    async def serve_icons(icon_name: str):
+        """アイコンファイルを提供"""
+        icon_path = os.path.join(static_dir, "icons", icon_name)
+        if os.path.exists(icon_path):
+            return FileResponse(icon_path)
+        else:
+            raise HTTPException(status_code=404, detail=f"Icon {icon_name} not found")
+    
+
 pose_analyzer = PoseAnalyzer()
 report_generator = ReportGenerator()
 performance_monitor = get_performance_monitor()
@@ -46,14 +113,6 @@ async def startup_event():
                version="1.0.0",
                allowed_origins=settings.ALLOWED_ORIGINS)
 
-@app.get("/")
-async def root(request: Request):
-    client_ip = request.client.host
-    logger.log_api_request("/", "GET", client_ip)
-    
-    response = {"message": "Posture Analysis API", "version": "1.0.0"}
-    logger.log_api_response("/", 200, 0.001)
-    return response
 
 @app.get("/health")
 async def health_check(request: Request):
@@ -64,8 +123,17 @@ async def health_check(request: Request):
     logger.log_api_response("/health", 200, 0.001)
     return response
 
-@app.post("/analyze-posture")
-async def analyze_posture(file: UploadFile = File(...), request: Request) -> Dict[str, Any]:
+@app.get("/api/health")
+async def api_health_check(request: Request):
+    client_ip = request.client.host
+    logger.log_api_request("/api/health", "GET", client_ip)
+    
+    response = {"status": "healthy", "mediapipe": "ready"}
+    logger.log_api_response("/api/health", 200, 0.001)
+    return response
+
+@app.post("/api/analyze")
+async def analyze_posture(request: Request, file: UploadFile = File(...)) -> Dict[str, Any]:
     start_time = time.time()
     client_ip = request.client.host
     
