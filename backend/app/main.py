@@ -248,6 +248,31 @@ async def debug_page():
     except FileNotFoundError:
         return "<h1>Debug page not found</h1><p>File: debug_demo.html not found</p>"
 
+@app.get("/debug/static")
+async def debug_static():
+    """Debug static directory structure"""
+    import os
+    info = {
+        "static_dir": static_dir,
+        "static_dir_exists": os.path.exists(static_dir),
+        "current_working_directory": os.getcwd(),
+        "app_file_location": __file__,
+        "calculated_static_path": os.path.join(os.path.dirname(__file__), "..", "static")
+    }
+    
+    if os.path.exists(static_dir):
+        try:
+            info["static_contents"] = os.listdir(static_dir)
+            icons_dir = os.path.join(static_dir, "icons")
+            if os.path.exists(icons_dir):
+                info["icons_contents"] = os.listdir(icons_dir)
+            else:
+                info["icons_contents"] = "icons directory not found"
+        except Exception as e:
+            info["error_listing"] = str(e)
+    
+    return info
+
 @app.get("/fixed", response_class=HTMLResponse)
 async def fixed_demo_page():
     """Fixed demo page with improved progress tracking and error handling"""
