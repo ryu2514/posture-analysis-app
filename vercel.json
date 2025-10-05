@@ -1,0 +1,12 @@
+{
+  "framework": "nextjs",
+  "buildCommand": "npm run build",
+  "env": {
+    "ANALYSIS_BACKEND": "mediapipe"
+  },
+  "functions": {
+    "api/**/*.js": { "runtime": "nodejs18.x" },
+    "api/**/*.ts": { "runtime": "nodejs18.x" }
+  }
+}
+
