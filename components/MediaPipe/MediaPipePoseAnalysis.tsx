@@ -28,6 +28,16 @@ export default function MediaPipePoseAnalysis({ onAnalysisComplete }: MediaPipeP
   const [camera, setCamera] = useState<Camera | null>(null)
   const [landmarks, setLandmarks] = useState<any>(null)
   const [analysis, setAnalysis] = useState<string>('')
+  const [metrics, setMetrics] = useState<{
+    cvaDeg: number
+    shoulderTiltDeg: number
+    shoulderDiffCm: number
+    pelvisTiltDeg: number
+    headOffsetPct: number
+    trunkTiltDeg: number
+    pelvisTranslationPct: number
+    kendallLabel: string
+  } | null>(null)
   const [showGuides, setShowGuides] = useState(true)
 
   useEffect(() => {
@@ -184,6 +194,18 @@ export default function MediaPipePoseAnalysis({ onAnalysisComplete }: MediaPipeP
         pelvisTilt,
       })
     }
+
+    // 状態更新（UIカード表示用）
+    setMetrics({
+      cvaDeg: headForwardCVA,
+      shoulderTiltDeg,
+      shoulderDiffCm: shoulderHeightDiff,
+      pelvisTiltDeg: pelvisTilt,
+      headOffsetPct: forwardHeadOffsetPct,
+      trunkTiltDeg,
+      pelvisTranslationPct,
+      kendallLabel: kendall.label,
+    })
 
     const analysisText = `
 姿勢分析結果（リアルタイム）:
@@ -499,6 +521,38 @@ ${getPostureAdvice(headForwardCVA, shoulderHeightDiff, pelvisTilt)}
 
             {/* 分析結果 */}
             <div className="space-y-4">
+              {/* 指標カード */}
+              <div className="grid md:grid-cols-2 gap-3">
+                {metrics && (
+                  <>
+                    <MetricCard
+                      label="CVA"
+                      value={`${metrics.cvaDeg.toFixed(1)}°`}
+                      status={metrics.cvaDeg >= 50 ? '良好' : metrics.cvaDeg >= 40 ? '注意' : '要改善'}
+                      color={metrics.cvaDeg >= 50 ? 'green' : metrics.cvaDeg >= 40 ? 'yellow' : 'red'}
+                    />
+                    <MetricCard
+                      label="肩の高さ差"
+                      value={`${metrics.shoulderDiffCm.toFixed(1)}cm`}
+                      status={metrics.shoulderDiffCm < 1.5 ? '良好' : metrics.shoulderDiffCm < 3 ? '注意' : '要改善'}
+                      color={metrics.shoulderDiffCm < 1.5 ? 'green' : metrics.shoulderDiffCm < 3 ? 'yellow' : 'red'}
+                    />
+                    <MetricCard
+                      label="肩の傾き"
+                      value={`${Math.abs(metrics.shoulderTiltDeg).toFixed(1)}°`}
+                      status={Math.abs(metrics.shoulderTiltDeg) < 3 ? '良好' : Math.abs(metrics.shoulderTiltDeg) < 6 ? '注意' : '要改善'}
+                      color={Math.abs(metrics.shoulderTiltDeg) < 3 ? 'green' : Math.abs(metrics.shoulderTiltDeg) < 6 ? 'yellow' : 'red'}
+                    />
+                    <MetricCard
+                      label="骨盤傾斜"
+                      value={`${Math.abs(metrics.pelvisTiltDeg).toFixed(1)}°`}
+                      status={Math.abs(metrics.pelvisTiltDeg) < 3 ? '良好' : Math.abs(metrics.pelvisTiltDeg) < 6 ? '注意' : '要改善'}
+                      color={Math.abs(metrics.pelvisTiltDeg) < 3 ? 'green' : Math.abs(metrics.pelvisTiltDeg) < 6 ? 'yellow' : 'red'}
+                    />
+                  </>
+                )}
+              </div>
+
               <div className="bg-gray-50 rounded-lg p-6">
                 <h3 className="font-semibold text-gray-800 mb-4">リアルタイム分析</h3>
                 {analysis ? (
@@ -549,6 +603,26 @@ ${getPostureAdvice(headForwardCVA, shoulderHeightDiff, pelvisTilt)}
           </div>
         </div>
       </div>
+    </div>
+  )
+}
+
+function MetricCard({ label, value, status, color }: { label: string; value: string; status: string; color: 'green' | 'yellow' | 'red' }) {
+  const map = {
+    green: { ring: 'ring-emerald-200', text: 'text-emerald-700', badgeBg: 'bg-emerald-50', badgeText: 'text-emerald-700' },
+    yellow: { ring: 'ring-amber-200', text: 'text-amber-700', badgeBg: 'bg-amber-50', badgeText: 'text-amber-700' },
+    red: { ring: 'ring-rose-200', text: 'text-rose-700', badgeBg: 'bg-rose-50', badgeText: 'text-rose-700' },
+  } as const
+
+  const c = map[color]
+
+  return (
+    <div className={`rounded-xl border border-slate-200 ring-1 ${c.ring} bg-white p-4`}> 
+      <div className="flex items-baseline justify-between">
+        <div className="text-sm text-slate-600">{label}</div>
+        <span className={`text-xs ${c.badgeBg} ${c.badgeText} px-2 py-0.5 rounded-full`}>{status}</span>
+      </div>
+      <div className={`text-2xl font-semibold mt-1 ${c.text}`}>{value}</div>
     </div>
   )
 }

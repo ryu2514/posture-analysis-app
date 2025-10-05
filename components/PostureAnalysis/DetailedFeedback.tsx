@@ -82,6 +82,22 @@ export default function DetailedFeedback({ analysis }: DetailedFeedbackProps) {
           </div>
         </div>
 
+        {/* キーメトリクス（視覚化） */}
+        <div className="grid md:grid-cols-4 gap-3">
+          <Metric label="CVA" value={`${analysis.measurements.headForwardAngle.toFixed(1)}°`} status={
+            analysis.measurements.headForwardAngle >= 50 ? '良好' : analysis.measurements.headForwardAngle >= 40 ? '注意' : '要改善'
+          } />
+          <Metric label="肩の高さ差" value={`${analysis.measurements.shoulderHeight.difference.toFixed(1)}cm`} status={
+            analysis.measurements.shoulderHeight.difference < 1.5 ? '良好' : analysis.measurements.shoulderHeight.difference < 3 ? '注意' : '要改善'
+          } />
+          <Metric label="胸椎角度" value={`${analysis.measurements.spinalAlignment.thoracic.toFixed(1)}°`} status={
+            Math.abs(analysis.measurements.spinalAlignment.thoracic) < 3 ? '良好' : Math.abs(analysis.measurements.spinalAlignment.thoracic) < 6 ? '注意' : '要改善'
+          } />
+          <Metric label="骨盤傾斜" value={`${analysis.measurements.pelvisPosition.lateral.toFixed(1)}°`} status={
+            Math.abs(analysis.measurements.pelvisPosition.lateral) < 3 ? '良好' : Math.abs(analysis.measurements.pelvisPosition.lateral) < 6 ? '注意' : '要改善'
+          } />
+        </div>
+
         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
           <h3 className="font-semibold text-blue-800 mb-2">📋 総合評価</h3>
           <p className="text-blue-700 text-sm leading-relaxed">
@@ -173,6 +189,24 @@ export default function DetailedFeedback({ analysis }: DetailedFeedbackProps) {
           ))}
         </div>
       </div>
+    </div>
+  )
+}
+
+function Metric({ label, value, status }: { label: string; value: string; status: '良好' | '注意' | '要改善' }) {
+  const color = status === '良好' ? 'emerald' : status === '注意' ? 'amber' : 'rose'
+  const ring = color === 'emerald' ? 'ring-emerald-200' : color === 'amber' ? 'ring-amber-200' : 'ring-rose-200'
+  const text = color === 'emerald' ? 'text-emerald-700' : color === 'amber' ? 'text-amber-700' : 'text-rose-700'
+  const badgeBg = color === 'emerald' ? 'bg-emerald-50' : color === 'amber' ? 'bg-amber-50' : 'bg-rose-50'
+  const badgeText = text
+
+  return (
+    <div className={`rounded-xl border border-slate-200 ring-1 ${ring} bg-white p-4`}>
+      <div className="flex items-baseline justify-between">
+        <div className="text-sm text-slate-600">{label}</div>
+        <span className={`text-xs ${badgeBg} ${badgeText} px-2 py-0.5 rounded-full`}>{status}</span>
+      </div>
+      <div className={`text-2xl font-semibold mt-1 ${text}`}>{value}</div>
     </div>
   )
 }
