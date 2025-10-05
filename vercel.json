@@ -1,4 +1,5 @@
 {
+  "framework": "nextjs",
   "buildCommand": "npm run build",
   "env": {
     "ANALYSIS_BACKEND": "mediapipe"
