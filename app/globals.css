@@ -56,4 +56,12 @@ body {
   .badge {
     @apply inline-flex items-center rounded-full bg-indigo-50 text-indigo-700 text-xs font-medium px-2.5 py-1 ring-1 ring-inset ring-indigo-100;
   }
+
+  .chip {
+    @apply inline-flex items-center rounded-full px-3 py-1 text-sm font-medium shadow-sm ring-1 ring-inset pointer-events-none;
+  }
+  .chip-pink { @apply bg-pink-600 text-white ring-pink-500/30; }
+  .chip-blue { @apply bg-sky-600 text-white ring-sky-500/30; }
+  .chip-green { @apply bg-emerald-600 text-white ring-emerald-500/30; }
+  .chip-slate { @apply bg-slate-700 text-white ring-slate-500/30; }
 }

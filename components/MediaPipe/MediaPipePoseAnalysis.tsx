@@ -38,6 +38,12 @@ export default function MediaPipePoseAnalysis({ onAnalysisComplete }: MediaPipeP
     pelvisTranslationPct: number
     kendallLabel: string
   } | null>(null)
+  const [badges, setBadges] = useState<{
+    x: number
+    y: number
+    text: string
+    color: 'pink' | 'blue' | 'green' | 'slate'
+  }[]>([])
   const [showGuides, setShowGuides] = useState(true)
 
   useEffect(() => {
@@ -193,6 +199,42 @@ export default function MediaPipePoseAnalysis({ onAnalysisComplete }: MediaPipeP
         shoulderTiltDeg,
         pelvisTilt,
       })
+    }
+
+    // バッジ（オーバーレイ）位置計算（ピクセル変換）
+    if (canvasRef.current) {
+      const w = canvasRef.current.width
+      const h = canvasRef.current.height
+      const earMid = midpoint(leftEar, rightEar)
+      const shoulderMid = midpoint(leftShoulder, rightShoulder)
+      const hipMid = midpoint(leftHip, rightHip)
+      const toPx = (p: any) => ({ x: p.x * w, y: p.y * h })
+
+      const earPx = toPx(earMid)
+      const shoulderPx = toPx(shoulderMid)
+      const hipPx = toPx(hipMid)
+
+      const newBadges = [
+        {
+          x: earPx.x + 16,
+          y: earPx.y - 24,
+          text: `CVA ${headForwardCVA.toFixed(1)}°`,
+          color: headForwardCVA >= 50 ? 'green' : headForwardCVA >= 40 ? 'blue' : 'pink',
+        },
+        {
+          x: shoulderPx.x + 16,
+          y: shoulderPx.y - 24,
+          text: `肩差 ${shoulderHeightDiff.toFixed(1)}%`,
+          color: shoulderHeightDiff < 1.5 ? 'green' : shoulderHeightDiff < 3 ? 'blue' : 'pink',
+        },
+        {
+          x: hipPx.x + 16,
+          y: hipPx.y - 24,
+          text: `骨盤 ${Math.abs(pelvisTilt).toFixed(1)}°`,
+          color: Math.abs(pelvisTilt) < 3 ? 'green' : Math.abs(pelvisTilt) < 6 ? 'blue' : 'pink',
+        },
+      ]
+      setBadges(newBadges)
     }
 
     // 状態更新（UIカード表示用）
@@ -474,6 +516,19 @@ ${getPostureAdvice(headForwardCVA, shoulderHeightDiff, pelvisTilt)}
                   className="absolute top-0 left-0 w-full h-full"
                   style={{ display: isActive ? 'block' : 'none' }}
                 />
+                {isActive && badges.length > 0 && (
+                  <div className="absolute inset-0 pointer-events-none">
+                    {badges.map((b, i) => (
+                      <div
+                        key={i}
+                        className={`chip chip-${b.color} absolute`}
+                        style={{ transform: `translate(${b.x}px, ${b.y}px)` }}
+                      >
+                        {b.text}
+                      </div>
+                    ))}
+                  </div>
+                )}
                 {!isActive && (
                   <div className="aspect-video flex items-center justify-center text-white">
                     <div className="text-center">
@@ -488,7 +543,7 @@ ${getPostureAdvice(headForwardCVA, shoulderHeightDiff, pelvisTilt)}
                 {!isActive ? (
                   <button
                     onClick={startCamera}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    className="btn-primary"
                     disabled={!pose}
                   >
                     📹 カメラ開始
@@ -497,19 +552,19 @@ ${getPostureAdvice(headForwardCVA, shoulderHeightDiff, pelvisTilt)}
                   <>
                     <button
                       onClick={stopCamera}
-                      className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                      className="btn-secondary"
                     >
                       ⏹️ 停止
                     </button>
                     <button
                       onClick={() => setShowGuides(v => !v)}
-                      className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+                      className="btn-secondary"
                     >
                       {showGuides ? 'ガイド非表示' : 'ガイド表示'}
                     </button>
                     <button
                       onClick={captureAnalysis}
-                      className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                      className="btn-primary"
                       disabled={!landmarks}
                     >
                       📸 解析結果を保存
